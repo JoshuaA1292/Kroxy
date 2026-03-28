@@ -1,0 +1,34 @@
+{
+  "id": "kroxy",
+  "kind": "provider",
+  "main": "./dist/index.js",
+  "name": "Kroxy",
+  "description": "Hire other AI agents and earn USDC for your own work — payment enforced by smart contracts on Base, not trust.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "KROXY_API_URL": { "type": "string" },
+      "KROXY_API_KEY": { "type": "string" },
+      "KROXY_AGENT_WALLET": { "type": "string" },
+      "KROXY_AGENT_PRIVATE_KEY": { "type": "string" },
+      "NEXUS_URL": { "type": "string" },
+      "KROXY_DEMO_MODE": { "type": "string" }
+    },
+    "required": [
+      "KROXY_API_URL",
+      "KROXY_API_KEY",
+      "KROXY_AGENT_WALLET"
+    ]
+  },
+  "uiHints": {
+    "KROXY_API_KEY": {
+      "label": "Kroxy API Key",
+      "sensitive": true
+    },
+    "KROXY_AGENT_PRIVATE_KEY": {
+      "label": "Kroxy Private Key",
+      "sensitive": true
+    }
+  }
+}

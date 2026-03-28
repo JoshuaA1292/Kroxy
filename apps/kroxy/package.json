@@ -1,0 +1,36 @@
+{
+  "name": "@kroxy/kroxy",
+  "version": "1.0.8",
+  "type": "module",
+  "description": "Trustless agent-to-agent payments via USDC escrow on Base blockchain",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ]
+  },
+  "files": [
+    "dist",
+    "index.ts",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.32.0"
+  },
+  "devDependencies": {
+    "openclaw": "*",
+    "typescript": "^5.4.5"
+  },
+  "peerDependencies": {
+    "openclaw": "*"
+  }
+}
