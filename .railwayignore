@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+apps/dashboard
+apps/agent-a
+apps/agent-b
+apps/mcp-server
+apps/kroxy
+packages/contracts
+demo-video
+demo.js
+/lib
+packages/contracts

@@ -1,0 +1,21 @@
+{
+  "name": "@kroxy/agent-a",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node --transpile-only src/index.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@kroxy/sdk": "workspace:*",
+    "@kroxy/types": "workspace:*",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

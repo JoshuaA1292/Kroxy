@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Smart Contract Tests ────────────────────────────────────────────────────
+  contracts:
+    name: Forge Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run forge tests
+        working-directory: packages/contracts
+        run: forge test --gas-report -vvv
+
+      - name: Check forge build
+        working-directory: packages/contracts
+        run: forge build --sizes
+
+  # ── TypeScript Type Checking ────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @kroxy/db exec prisma generate
+
+      - name: Type-check all packages
+        run: pnpm --filter './packages/**' exec tsc --noEmit
+        continue-on-error: false
+
+      - name: Type-check all apps
+        run: pnpm --filter './apps/**' exec tsc --noEmit
+        continue-on-error: false
+
+  # ── API Unit Tests ──────────────────────────────────────────────────────────
+  api-tests:
+    name: API Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @kroxy/db exec prisma generate
+
+      - name: Run API unit tests with coverage
+        run: pnpm --filter @kroxy/api run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: apps/api/coverage/lcov.info
+
+  # ── Security Audit ──────────────────────────────────────────────────────────
+  audit:
+    name: Dependency Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit npm dependencies
+        # Fail on high/critical severity vulnerabilities only
+        run: pnpm audit --audit-level=high
+        continue-on-error: true  # Set to false once all known vulns are patched
+
+  # ── Build Check ─────────────────────────────────────────────────────────────
+  build:
+    name: Build All Packages
+    runs-on: ubuntu-latest
+    needs: [typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @kroxy/db exec prisma generate
+
+      - name: Build all packages and apps
+        run: pnpm build
+
+      - name: Check API bundle size
+        run: du -sh apps/api/dist/ || true

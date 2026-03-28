@@ -1,0 +1,22 @@
+{
+  "name": "@kroxy/agent-b",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@kroxy/types": "workspace:*",
+    "express": "^5.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.14.0",
+    "@types/express": "^5.0.0",
+    "ts-node-dev": "^2.0.0"
+  }
+}
