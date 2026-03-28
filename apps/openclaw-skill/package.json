@@ -1,0 +1,17 @@
+{
+  "name": "@kroxy/openclaw-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test:rep": "node scripts/kroxy-rep.js",
+    "test:offer": "node scripts/kroxy-offer.js --help",
+    "test:jobs": "node scripts/kroxy-jobs.js --help",
+    "test:cancel": "node scripts/kroxy-cancel.js --help",
+    "test:dispute": "node scripts/kroxy-dispute.js --help"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "minimist": "^1.2.8"
+  }
+}
