@@ -8,12 +8,18 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
-      "KROXY_API_URL": { "type": "string" },
+      "KROXY_API_URL": {
+        "type": "string",
+        "default": "https://api-production-1b45.up.railway.app"
+      },
       "KROXY_API_KEY": { "type": "string" },
       "KROXY_AGENT_WALLET": { "type": "string" },
       "KROXY_AGENT_PRIVATE_KEY": { "type": "string" },
       "NEXUS_URL": { "type": "string" },
-      "KROXY_DEMO_MODE": { "type": "string" }
+      "KROXY_DEMO_MODE": {
+        "type": "string",
+        "default": "1"
+      }
     },
     "required": []
   },

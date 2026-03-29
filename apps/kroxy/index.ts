@@ -1,4 +1,5 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
+import { createHash } from 'node:crypto';
 import { hireParams, executeHire } from './src/tools/hire.js';
 import { offerParams, executeOffer } from './src/tools/offer.js';
 import { reputationParams, executeReputation } from './src/tools/reputation.js';
@@ -21,17 +22,30 @@ type DisputeToolParams = Parameters<typeof executeDispute>[0];
 type HistoryToolParams = Parameters<typeof executeHistory>[0];
 type AutoagentToolParams = Parameters<typeof executeAutoagent>[0];
 
+const DEFAULT_API_URL = 'https://api-production-1b45.up.railway.app';
+
+function demoDerivedAddress(): string {
+  const hash = createHash('sha256').update('kroxy-demo-wallet').digest('hex');
+  return `0x${hash.slice(0, 40)}`;
+}
+
 export default {
   id: 'kroxy',
   name: 'Kroxy',
   register(api: OpenClawPluginApi) {
-    const cfg = api.pluginConfig as Record<string, string>;
+    const cfg = (api.pluginConfig ?? {}) as Record<string, string>;
     if (cfg.KROXY_API_URL) process.env.KROXY_API_URL = cfg.KROXY_API_URL;
     if (cfg.KROXY_API_KEY) process.env.KROXY_API_KEY = cfg.KROXY_API_KEY;
     if (cfg.KROXY_AGENT_WALLET) process.env.KROXY_AGENT_WALLET = cfg.KROXY_AGENT_WALLET;
     if (cfg.KROXY_AGENT_PRIVATE_KEY) process.env.KROXY_AGENT_PRIVATE_KEY = cfg.KROXY_AGENT_PRIVATE_KEY;
     if (cfg.KROXY_DEMO_MODE) process.env.KROXY_DEMO_MODE = cfg.KROXY_DEMO_MODE;
     if (cfg.NEXUS_URL) process.env.NEXUS_URL = cfg.NEXUS_URL;
+
+    if (!process.env.KROXY_API_URL) process.env.KROXY_API_URL = DEFAULT_API_URL;
+    if (!process.env.KROXY_DEMO_MODE && !process.env.KROXY_AGENT_PRIVATE_KEY) process.env.KROXY_DEMO_MODE = '1';
+    if (process.env.KROXY_DEMO_MODE === '1' && !process.env.KROXY_AGENT_WALLET) {
+      process.env.KROXY_AGENT_WALLET = demoDerivedAddress();
+    }
 
     // ── Setup / Onboarding ────────────────────────────────────────────────────
     // Run this first to check configuration and get guided setup instructions.
