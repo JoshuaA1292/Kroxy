@@ -11,11 +11,11 @@ const router = Router();
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
 const ConditionSchema = z.object({
-  type: z.enum(['http_status', 'json_field', 'latency_ms', 'uptime_percent']),
+  type: z.enum(['http_status', 'json_field', 'latency_ms', 'uptime_percent', 'deliverable_quality']),
   endpoint: z.string().url('condition endpoint must be a valid URL'),
   field: z.string().optional(),
-  operator: z.enum(['eq', 'gte', 'lte', 'contains']),
-  expected: z.union([z.string(), z.number(), z.boolean()]),
+  operator: z.enum(['eq', 'gte', 'lte', 'gt', 'lt', 'contains']),
+  expected: z.union([z.string(), z.number(), z.boolean(), z.record(z.unknown())]),
 });
 
 const ConditionsDefinitionSchema = z.object({

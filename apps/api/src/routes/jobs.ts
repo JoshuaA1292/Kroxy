@@ -34,9 +34,7 @@ const SubmitBidSchema = z.object({
   message: z.string().max(500).optional(),
 });
 
-const AcceptBidSchema = z.object({
-  payerPrivateKey: z.string().min(1, 'payerPrivateKey is required'),
-});
+const AcceptBidSchema = z.object({}).strict();
 
 const DeliverJobSchema = z.object({
   providerWallet: EthAddressSchema,
@@ -102,7 +100,7 @@ router.post(
       return;
     }
     try {
-      const result = await acceptBid(req.params.id as string, req.params.bidId as string, parsed.data.payerPrivateKey);
+      const result = await acceptBid(req.params.id as string, req.params.bidId as string);
       res.json(result);
     } catch (err: any) {
       res.status(err.statusCode ?? 500).json({ error: err.message });

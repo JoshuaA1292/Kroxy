@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
 import { readLimiter } from '../middleware/rateLimiter';
 
 const router = Router();

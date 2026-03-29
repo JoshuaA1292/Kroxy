@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
 import { writeLimiter, readLimiter } from '../middleware/rateLimiter';
 import { requireApiKey } from '../middleware/apiKey';
 import {

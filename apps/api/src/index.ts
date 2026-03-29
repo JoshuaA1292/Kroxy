@@ -19,8 +19,6 @@ import courtRouter from './routes/court';
 import statsRouter from './routes/stats';
 import { errorHandler } from './middleware/errorHandler';
 import { startVerificationEngine } from './services/verifierService';
-import demoAgentRouter from './routes/demoAgent';
-import { startDemoAgent } from './services/demoAgentService';
 
 const app = express();
 const PORT = parseInt(process.env.PORT ?? process.env.API_PORT ?? '3001', 10);
@@ -86,7 +84,6 @@ app.use('/api/agents', agentsRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/court', courtRouter);
 app.use('/api/stats', statsRouter);
-app.use('/demo-agent', demoAgentRouter);
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 
@@ -114,9 +111,6 @@ async function startVerificationEngineWithRetry(attempt = 1): Promise<void> {
 app.listen(PORT, () => {
   logger.info({ port: PORT }, 'API server started');
   void startVerificationEngineWithRetry();
-  if (process.env.KROXY_DEMO_AGENT_ENABLED === '1') {
-    void startDemoAgent();
-  }
 });
 
 export default app;

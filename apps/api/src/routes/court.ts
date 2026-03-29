@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { prisma, Prisma } from '@kroxy/db';
+import { Prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { readLimiter, writeLimiter } from '../middleware/rateLimiter';
 import { requireApiKey } from '../middleware/apiKey';
@@ -19,7 +20,7 @@ router.get('/cases', readLimiter, async (req: Request, res: Response): Promise<v
   const limit = Math.min(parseInt(qs(req.query.limit) ?? '50') || 50, 200);
 
   const where: Prisma.ArbitrationCaseWhereInput = {};
-  if (status) where.status = status as Prisma.EnumCaseStatusFilter;
+  if (status) where.status = status as Prisma.EnumArbitrationStatusFilter;
 
   const cases = await prisma.arbitrationCase.findMany({
     where,

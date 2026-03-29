@@ -1,8 +1,26 @@
 **/node_modules/
 **/dist/
 .env
+.env.*
+!.env.example
 .DS_Store
 **/.turbo/
 **/*.log
 **/.next/
 **/coverage/
+
+# Build artifacts
+*.tsbuildinfo
+**/out/*.mp4
+**/out/*.webm
+**/out/*.gif
+
+# Foundry artifacts
+packages/contracts/cache/
+packages/contracts/out/
+
+# Lock files (top-level only)
+apps/demo-video/package-lock.json
+
+# Nested project copy (not part of monorepo)
+Kroxy/
