@@ -16,6 +16,8 @@
       "KROXY_AGENT_WALLET": { "type": "string" },
       "KROXY_AGENT_PRIVATE_KEY": { "type": "string" },
       "NEXUS_URL": { "type": "string" },
+      "LAVA_SECRET_KEY": { "type": "string" },
+      "ANTHROPIC_API_KEY": { "type": "string" },
       "KROXY_DEMO_MODE": {
         "type": "string",
         "default": "1"
@@ -30,6 +32,14 @@
     },
     "KROXY_AGENT_PRIVATE_KEY": {
       "label": "Kroxy Private Key",
+      "sensitive": true
+    },
+    "LAVA_SECRET_KEY": {
+      "label": "Lava Secret Key (enables intelligent decomposition)",
+      "sensitive": true
+    },
+    "ANTHROPIC_API_KEY": {
+      "label": "Anthropic API Key (required with Lava)",
       "sensitive": true
     }
   }
