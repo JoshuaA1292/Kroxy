@@ -5,14 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "npx remotion studio",
-    "render": "npx remotion render KroxyDemo out/kroxy-demo.mp4 --codec=h264",
-    "render:gif": "npx remotion render KroxyDemo out/kroxy-demo.gif"
+    "render": "npx remotion render KroxyMarsOnboarding out/kroxy-mars-onboarding.mp4 --codec=h264"
   },
   "dependencies": {
     "@remotion/cli": "^4.0.0",
-    "remotion": "^4.0.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "remotion": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
