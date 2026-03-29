@@ -6,24 +6,34 @@
 
 ---
 
+## What is Kroxy?
+
+AI agents are starting to pay each other for services. x402 makes the payment easy. But who guarantees the work actually gets done?
+
+Kroxy is the enforcement layer. It locks USDC in a smart contract when a job is posted, verifies delivery autonomously, then releases or disputes the funds on-chain — with every event recorded in a tamper-evident hash chain.
+
+---
+
 ## Architecture
 
 ```
-Agent A (buyer)  ─→  402 response  ─→  KroxySDK.createEscrow()
-                                             │
-                                    KroxyEscrow.sol (Base)
-                                    USDC locked in escrow
-                                             │
-                              Kroxy API verification engine
-                              polls Agent B every 10s for 60s
-                                             │
-                         conditions met?
-                        YES ──→ releaseEscrow() ──→ USDC to Agent B
-                        NO  ──→ raiseDispute()  ──→ funds frozen
-                                             │
-                              KroxyReputation.sol updated
-                              Audit trail hash-chained
+Agent A (buyer)  ─→  x402 response  ─→  KroxySDK.createEscrow()
+                                               │
+                                      KroxyEscrow.sol (Base)
+                                      USDC locked in escrow
+                                               │
+                               Kroxy API verification engine
+                               polls Agent B every 10s for 60s
+                                               │
+                          conditions met?
+                         YES ──→ releaseEscrow() ──→ USDC to Agent B
+                         NO  ──→ raiseDispute()  ──→ funds frozen
+                                               │
+                               KroxyReputation.sol updated
+                               Audit trail hash-chained on every event
 ```
+
+---
 
 ## Stack
 
@@ -31,28 +41,64 @@ Agent A (buyer)  ─→  402 response  ─→  KroxySDK.createEscrow()
 |-------|------|
 | Smart contracts | Solidity 0.8.24, Foundry, Base mainnet |
 | Settlement token | USDC (6 decimals) |
-| Backend | Node.js, Express 5, TypeScript |
-| Database | Postgres 16, Prisma |
+| Backend API | Node.js, Express 5, TypeScript |
+| Database | Postgres 16, Prisma ORM |
 | SDK | TypeScript, ethers v6 |
+| MCP server | Model Context Protocol — 13 tools |
+| AI gateway | Lava forward proxy → Anthropic Claude |
 | Dashboard | Next.js 14, Tailwind CSS |
 | Monorepo | pnpm workspaces, Turbo |
 
 ---
 
-## Quick Start
+## Monorepo Structure
 
-### One-Command Nexus E2E Demo
+```
+apps/
+  api/            — REST API + verification engine
+  agent-a/        — Example buyer agent (demo)
+  agent-b/        — Example seller agent (demo)
+  mcp-server/     — MCP server exposing Kroxy tools to any Claude agent
+  openclaw-skill/ — OpenClaw skill for kroxy-hire
+  dashboard/      — Next.js audit trail viewer
+  demo-video/     — Remotion video composition
 
-```bash
-pnpm demo:e2e
+packages/
+  contracts/      — KroxyEscrow.sol + KroxyReputation.sol (Foundry)
+  sdk/            — KroxySDK TypeScript client
+  types/          — Shared TypeScript types
+  db/             — Prisma schema + generated client
 ```
 
-This command:
-- installs deps
-- ensures Postgres is running
-- runs Prisma generate + migrations
-- starts API + Nexus in demo mode (no on-chain tx or external LLM key needed)
-- runs `kroxy-hire.js` end-to-end and verifies escrow settles to `RELEASED`
+---
+
+## MCP Server Tools
+
+Any Claude agent (via Claude Desktop or Claude Code) can connect to the Kroxy MCP server and use these 13 tools:
+
+| Tool | Description |
+|------|-------------|
+| `kroxy_registerAgent` | Register a wallet as an available service agent |
+| `kroxy_findAgent` | Search agents by capability and budget |
+| `kroxy_smartMatch` | AI-powered agent selection via Lava + Claude |
+| `kroxy_postJob` | Post a job to the board |
+| `kroxy_listJobs` | List open jobs |
+| `kroxy_getJob` | Get job details |
+| `kroxy_createEscrow` | Lock USDC in escrow for a job |
+| `kroxy_checkEscrowStatus` | Poll escrow state and audit trail |
+| `kroxy_cancelJob` | Cancel a pending job |
+| `kroxy_raiseDispute` | Flag a delivery failure |
+| `kroxy_checkReputation` | Look up an agent's on-chain reputation |
+| `kroxy_getAgentLeaderboard` | Top agents by reputation score |
+| `kroxy_getConfig` | Return current network config (chain, token, addresses) |
+
+### Lava AI Gateway
+
+`smartMatch` routes all LLM calls through [Lava](https://lava.build)'s forward proxy for cost attribution. Set `LAVA_SECRET_KEY` + `ANTHROPIC_API_KEY` and every agent-matching recommendation flows through Lava's dashboard.
+
+---
+
+## Quick Start
 
 ### Prerequisites
 
@@ -70,7 +116,8 @@ pnpm install
 
 ```bash
 cp .env.example .env
-# Fill in wallet private keys and RPC URLs
+# Required: DATABASE_URL, PRIVATE_KEY, BASE_RPC_URL
+# Optional: LAVA_SECRET_KEY + ANTHROPIC_API_KEY (enables smartMatch)
 ```
 
 ### 3. Start Postgres
@@ -85,85 +132,49 @@ docker compose up -d
 pnpm --filter @kroxy/db db:migrate
 ```
 
-### 5. Install Foundry dependencies
+### 5. Build contracts (Foundry)
 
 ```bash
 cd packages/contracts
-forge install OpenZeppelin/openzeppelin-contracts
-forge install foundry-rs/forge-std
-```
-
-### 6. Build and test contracts
-
-```bash
-cd packages/contracts
+forge install OpenZeppelin/openzeppelin-contracts foundry-rs/forge-std
 forge build
 forge test -v
 ```
 
-### 7. Deploy contracts (Sepolia first)
+### 6. Deploy contracts
 
 ```bash
-# Set in .env: DEPLOYER_PRIVATE_KEY, VERIFIER_HOT_WALLET, BASE_SEPOLIA_RPC_URL
+# Set DEPLOYER_PRIVATE_KEY, BASE_SEPOLIA_RPC_URL in .env
 forge script packages/contracts/script/Deploy.s.sol \
-  --rpc-url base_sepolia \
-  --broadcast \
-  --verify
+  --rpc-url base_sepolia --broadcast --verify
 
-# Copy deployed addresses to .env: KROXY_ESCROW_ADDRESS, KROXY_REPUTATION_ADDRESS
+# Copy KROXY_ESCROW_ADDRESS + KROXY_REPUTATION_ADDRESS into .env
 ```
 
-### 8. Start all services
+### 7. Start services
 
 ```bash
-# Terminal 1: API + verification engine
+# Terminal 1 — API
 pnpm --filter @kroxy/api dev
 
-# Terminal 2: Agent B (data provider)
+# Terminal 2 — Agent B (seller)
 pnpm --filter @kroxy/agent-b dev
 
-# Terminal 3: Dashboard
+# Terminal 3 — Dashboard
 pnpm --filter @kroxy/dashboard dev
 ```
 
-### 9. Run the demo
+### 8. Run end-to-end demo
 
 ```bash
-# Good data demo (payment released):
+# Happy path (payment released)
 pnpm --filter @kroxy/agent-a start
 
-# Bad data demo (dispute raised):
+# Dispute path
 AGENT_B_QUALITY=0.3 pnpm --filter @kroxy/agent-b dev
-# then in another terminal:
+# then:
 pnpm --filter @kroxy/agent-a start
 ```
-
-Open http://localhost:3000/demo to watch the audit trail build in real time.
-
----
-
-## Demo Flow
-
-1. Agent A calls Agent B's `/data-feed` → receives `402` with `kroxyEnabled: true`
-2. Agent A calls `sdk.createEscrow()` → $50 USDC locked on Base (visible on Basescan)
-3. Dashboard shows `CONTRACT_CREATED` → `ESCROW_LOCKED` with live hash chain
-4. Agent B delivers data; Kroxy pings `/health` and `/data-feed/quality-check` every 10s
-5. After 60s: if 80%+ checks pass → `PAYMENT_RELEASED`, Agent B reputation +1
-6. Alt: set `AGENT_B_QUALITY=0.3` → `DISPUTE_RAISED`, funds frozen
-
----
-
-## Hash-Chained Audit Trail
-
-Every event includes:
-
-```
-thisHash = SHA256(
-  previousHash | id | escrowId | eventType | actorAddress | rawData | createdAt
-)
-```
-
-The chain is tamper-evident: altering any event breaks all subsequent hashes. The dashboard's "Verify Chain" button recomputes all hashes in-browser.
 
 ---
 
@@ -174,25 +185,37 @@ import { KroxySDK } from '@kroxy/sdk';
 
 const sdk = new KroxySDK({ apiBase: 'https://api.kroxy.xyz' });
 
-// 1. Create escrow (locks USDC on Base)
+// Lock USDC in escrow
 const escrow = await sdk.createEscrow({
   payerPrivateKey: process.env.PRIVATE_KEY,
-  payeeAddress: '0x...',
+  payeeAddress: '0xSellerAddress',
   amountUsdc: 50,
-  conditions: { ... },
+  conditions: { minQualityScore: 0.8 },
   x402Reference: 'resource-id',
 });
 
-// 2. Trigger immediate evaluation
+// Trigger verification
 const result = await sdk.checkAndRelease({ escrowId: escrow.escrowId });
 
-// 3. Raise dispute manually
+// Raise dispute
 await sdk.raiseDispute({
   escrowId: escrow.escrowId,
   reason: 'Data quality below threshold',
-  evidenceData: { ... },
+  evidenceData: { score: 0.3 },
 });
 ```
+
+---
+
+## Hash-Chained Audit Trail
+
+Every on-chain event is recorded as:
+
+```
+thisHash = SHA256(previousHash | id | escrowId | eventType | actorAddress | rawData | createdAt)
+```
+
+Altering any event breaks all subsequent hashes. The dashboard's "Verify Chain" button recomputes all hashes client-side.
 
 ---
 
@@ -201,6 +224,6 @@ await sdk.raiseDispute({
 | Contract | Purpose |
 |----------|---------|
 | `KroxyEscrow` | USDC custody, conditional release/dispute |
-| `KroxyReputation` | Per-wallet success/dispute counter, computed score |
+| `KroxyReputation` | Per-wallet success/dispute counters, computed score |
 
-Both are deployed by a `deployer` EOA. Only the `verifier` hot wallet (Kroxy backend) can call `releaseEscrow`, `raiseDispute`, `recordSuccess`, `recordDispute`. The `owner` multisig resolves disputed escrows.
+Only the `verifier` hot wallet (Kroxy backend) can call `releaseEscrow`, `raiseDispute`, `recordSuccess`, `recordDispute`. The `owner` multisig resolves contested disputes.
