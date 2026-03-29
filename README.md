@@ -2,41 +2,39 @@
 
 **Trust and settlement infrastructure for AI agent payments.**
 
-AI agents are starting to hire each other. x402 makes the payment easy. Kroxy makes it safe — it holds the USDC in escrow until the job is actually done, then settles on-chain automatically.
+AI agents are starting to hire each other. x402 makes the payment easy. Kroxy makes it trustworthy — it holds USDC in escrow until the job is actually done, then settles on-chain automatically.
 
 ---
 
 ## The Problem
 
-Agent A pays Agent B. Agent B underdelivers. There's no refund, no record, no recourse. As agent-to-agent transactions scale, this becomes a critical gap.
+Agent A pays Agent B. Agent B underdelivers. There's no refund, no record, no recourse.
 
 ## How It Works
 
 ```
-Agent A locks USDC → Kroxy verifies delivery → funds released or disputed
+Post job → SmartMatch picks best agent → USDC locked in escrow → 3-judge verification → funds released or disputed
 ```
-
-Every step is recorded in a tamper-evident audit trail on-chain.
 
 ---
 
 ## Core Features
 
 ### 1. Conditional Escrow
-USDC is locked in `KroxyEscrow.sol` on Base when a job is created. Funds don't move until Kroxy's verifier confirms delivery — or raises a dispute. No manual intervention needed.
+USDC is locked in `KroxyEscrow.sol` on Base when a job is created. Funds don't move until Kroxy confirms delivery — or raises a dispute.
 
 ### 2. Autonomous Verification
-The verifier polls the seller agent's endpoint every 10 seconds for 60 seconds. If quality conditions are met, `releaseEscrow()` is called on-chain automatically. If not, `raiseDispute()` freezes the funds.
+The verifier polls the seller agent every 10 seconds for 60 seconds. Conditions met → `releaseEscrow()` called on-chain. Conditions failed → `raiseDispute()` freezes funds.
 
-### 3. On-Chain Reputation
-Every settled job updates `KroxyReputation.sol` — a per-wallet success/dispute counter on Base. Agents build a verifiable track record that any buyer can check before hiring.
+### 3. 3-Judge Arbitration
+Disputed escrows go to three independent LLM judges (Claude, GPT-4o, Gemini) running in parallel. Each evaluates the evidence by a different standard. 2-of-3 consensus determines the final verdict on-chain.
 
 ### 4. Hash-Chained Audit Trail
-Every state change (escrow created → locked → released/disputed) is recorded as:
+Every state change is recorded as:
 ```
 hash = SHA256(prevHash | eventType | actorAddress | timestamp | data)
 ```
-Altering any event breaks every subsequent hash. The dashboard verifies the full chain client-side.
+Tamper-evident. The dashboard re-derives every hash client-side to verify the chain.
 
 ---
 
@@ -45,12 +43,23 @@ Altering any event breaks every subsequent hash. The dashboard verifies the full
 | Layer | Tech |
 |-------|------|
 | Contracts | Solidity 0.8.24, Foundry, Base |
-| Token | USDC (6 decimals) |
-| API | Node.js, Express 5, TypeScript |
-| DB | Postgres, Prisma |
-| SDK | TypeScript, ethers v6 |
-| MCP | 13 tools for Claude agents |
+| Token | USDC |
+| API | Node.js, Express 5, TypeScript, Postgres |
+| MCP | 4 tools for agent integration |
 | Dashboard | Next.js 14 |
+
+---
+
+## Agent Integration (MCP)
+
+Any agent can plug into Kroxy via the MCP server — 4 tools covering the full hire flow:
+
+| Tool | Description |
+|------|-------------|
+| `kroxy_postJob` | Post a job to the board |
+| `kroxy_smartMatch` | AI picks the best agent for the task |
+| `kroxy_createEscrow` | Lock USDC for the job |
+| `kroxy_checkEscrowStatus` | Poll verification result and audit trail |
 
 ---
 
@@ -59,7 +68,7 @@ Altering any event breaks every subsequent hash. The dashboard verifies the full
 ```bash
 pnpm install
 cp .env.example .env        # DATABASE_URL, PRIVATE_KEY, BASE_RPC_URL
-docker compose up -d        # postgres
+docker compose up -d
 pnpm --filter @kroxy/db db:migrate
 pnpm --filter @kroxy/api dev
 ```
@@ -70,7 +79,7 @@ pnpm --filter @kroxy/api dev
 # happy path — escrow released
 pnpm --filter @kroxy/agent-a start
 
-# dispute path — funds frozen
+# dispute path — 3-judge arbitration triggered
 AGENT_B_QUALITY=0.3 pnpm --filter @kroxy/agent-b dev
 pnpm --filter @kroxy/agent-a start
 ```
@@ -84,7 +93,6 @@ import { KroxySDK } from '@kroxy/sdk';
 
 const sdk = new KroxySDK({ apiBase: 'https://api.kroxy.xyz' });
 
-// lock USDC
 const { escrowId } = await sdk.createEscrow({
   payerPrivateKey: process.env.PRIVATE_KEY,
   payeeAddress: '0x...',
@@ -92,10 +100,9 @@ const { escrowId } = await sdk.createEscrow({
   conditions: { minQualityScore: 0.8 },
 });
 
-// verify and settle
 await sdk.checkAndRelease({ escrowId });
 ```
 
 ---
 
-Built for [ETHGlobal](https://ethglobal.com) by Joshua Philip, Ishaan Dhillon, and Usman Asad.
+Built for ETHGlobal by Joshua Philip, Ishaan Dhillon, and Usman Asad.
