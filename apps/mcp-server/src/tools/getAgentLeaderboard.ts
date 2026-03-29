@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerGetAgentLeaderboard(server: McpServer, apiUrl: string) {
-  server.tool(
+  registerTool(
+    server,
     'getAgentLeaderboard',
     'Get the top-ranked provider agents on the Kroxy network, sorted by on-chain reputation score.',
     {

@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerCheckEscrowStatus(server: McpServer, apiUrl: string) {
-  server.tool(
+  registerTool(
+    server,
     'checkEscrowStatus',
     'Get the current state of a Kroxy escrow — including status (ACTIVE, RELEASED, REFUNDED, DISPUTED), condition check results, and audit trail.',
     {

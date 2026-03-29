@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerRegisterAgent(server: McpServer, apiUrl: string, apiKey: string) {
-  server.tool(
+  registerTool(
+    server,
     'registerAgent',
     'Register or update a provider agent profile on the Kroxy network so it can receive job notifications and be discovered by hiring agents.',
     {

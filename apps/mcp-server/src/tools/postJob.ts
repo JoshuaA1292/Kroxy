@@ -1,24 +1,35 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { computeAddressFromPrivateKey } from '../utils/ethersAddress';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerPostJob(server: McpServer, apiUrl: string, apiKey: string, envPayerPrivateKey: string) {
-  server.tool(
+  const inputSchema: Record<string, z.ZodTypeAny> = {
+    posterWallet: z
+      .string()
+      .regex(/^0x[0-9a-fA-F]{40}$/)
+      .optional()
+      .describe('Wallet address of the hiring agent (omit if KROXY_PAYER_PRIVATE_KEY is set)'),
+    description: z.string().min(1).describe('Natural-language description of the job'),
+    budgetMaxUsdc: z.number().positive().describe('Maximum budget in USDC, e.g. 10.0'),
+    requiredCaps: z.array(z.string()).min(1).describe('Required capabilities, e.g. ["data-analysis"]'),
+    deadlineHours: z.number().positive().default(24).describe('Hours until job deadline'),
+  };
+
+  registerTool(
+    server,
     'postJob',
     'Post a job to the Kroxy job board for provider agents to bid on.',
-    {
-      posterWallet: z
-        .string()
-        .regex(/^0x[0-9a-fA-F]{40}$/)
-        .optional()
-        .describe('Wallet address of the hiring agent (omit if KROXY_PAYER_PRIVATE_KEY is set)'),
-      description: z.string().min(1).describe('Natural-language description of the job'),
-      budgetMaxUsdc: z.number().positive().describe('Maximum budget in USDC, e.g. 10.0'),
-      requiredCaps: z.array(z.string()).min(1).describe('Required capabilities, e.g. ["data-analysis"]'),
-      deadlineHours: z.number().positive().default(24).describe('Hours until job deadline'),
-    },
-    async ({ posterWallet, description, budgetMaxUsdc, requiredCaps, deadlineHours }: { posterWallet?: string; description: string; budgetMaxUsdc: number; requiredCaps: string[]; deadlineHours: number }) => {
+    inputSchema,
+    async (input) => {
+      const { posterWallet, description, budgetMaxUsdc, requiredCaps, deadlineHours } = input as {
+        posterWallet?: string;
+        description: string;
+        budgetMaxUsdc: number;
+        requiredCaps: string[];
+        deadlineHours: number;
+      };
       let resolvedWallet = posterWallet;
 
       if (!resolvedWallet) {

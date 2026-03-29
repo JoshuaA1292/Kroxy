@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum EventType {
+  CONTRACT_CREATED
+  ESCROW_LOCKED
+  CONDITION_CHECKED
+  PAYMENT_RELEASED
+  DISPUTE_RAISED
+  EVIDENCE_POSTED
+  CASE_OPENED
+  JUDGE_COMMITTED
+  JUDGE_REVEALED
+  CONSENSUS_REACHED
+  REPUTATION_UPDATED
+}
+
+enum ActorRole {
+  AGENT_A
+  AGENT_B
+  SMART_CONTRACT
+  KROXY_VERIFIER
+  KROXY_COURT
+}
+
+enum EscrowState {
+  ACTIVE
+  RELEASED
+  DISPUTED
+  RESOLVED
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  AWARDED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ArbitrationStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Verdict {
+  PLAINTIFF_WINS
+  DEFENDANT_WINS
+  SPLIT
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model EscrowRecord {
+  id              String      @id @default(cuid())
+  escrowId        String      @unique
+  payerAddress    String
+  payeeAddress    String
+  amountUsdc      BigInt
+  conditionsHash  String
+  conditionsJson  Json
+  x402Reference   String?
+  state           EscrowState @default(ACTIVE)
+  expiresAt       DateTime
+  txHashCreated   String?
+  txHashSettled   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  auditEvents      AuditEvent[]
+  conditionChecks  ConditionCheck[]
+  arbitrationCase  ArbitrationCase?
+
+  @@index([state])
+  @@index([payerAddress])
+  @@index([payeeAddress])
+}
+
+model AuditEvent {
+  id           String    @id @default(cuid())
+  sequence     Int       @default(autoincrement())
+  escrowId     String
+  eventType    EventType
+  actorAddress String
+  actorRole    ActorRole
+  rawData      Json
+  txHash       String?
+  blockNumber  BigInt?
+  previousHash String
+  thisHash     String    @unique
+  createdAt    DateTime  @default(now())
+
+  escrowRecord EscrowRecord @relation(fields: [escrowId], references: [escrowId])
+
+  @@index([escrowId, sequence])
+}
+
+model ConditionCheck {
+  id           String   @id @default(cuid())
+  escrowId     String
+  checkNumber  Int
+  endpoint     String
+  httpStatus   Int?
+  responseBody Json?
+  passed       Boolean
+  failReason   String?
+  checkedAt    DateTime @default(now())
+
+  escrowRecord EscrowRecord @relation(fields: [escrowId], references: [escrowId])
+
+  @@index([escrowId])
+}
+
+model JobPosting {
+  id            String    @id @default(cuid())
+  posterWallet  String
+  description   String
+  budgetMaxUsdc Decimal?
+  requiredCaps  String[]
+  deadline      DateTime?
+  conditionsJson Json?
+  status        JobStatus @default(OPEN)
+  winningBidId  String?
+  escrowId      String?
+  deliverable   Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bids Bid[]
+
+  @@index([status])
+  @@index([posterWallet])
+}
+
+model Bid {
+  id                String    @id @default(cuid())
+  jobId             String
+  providerWallet    String
+  priceUsdc         Decimal
+  etaSeconds        Int?
+  conditionsAccepted Boolean  @default(true)
+  message           String?
+  status            BidStatus @default(PENDING)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  jobPosting JobPosting @relation(fields: [jobId], references: [id])
+
+  @@index([jobId])
+  @@index([providerWallet])
+}
+
+model AgentProfile {
+  id            String   @id @default(cuid())
+  walletAddress String   @unique
+  name          String
+  endpoint      String
+  modelName     String?
+  capabilities  String[]
+  pricingUsdc   Decimal
+  slaUptimePct  Float    @default(99.0)
+  slaResponseMs Int      @default(5000)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([active])
+}
+
+model ArbitrationCase {
+  id               String            @id @default(cuid())
+  escrowId         String            @unique
+  plaintiffWallet  String
+  defendantWallet  String
+  evidenceIpfsHash String?
+  evidenceJson     Json?
+  judgeCommits     Json[]
+  status           ArbitrationStatus @default(PENDING)
+  verdict          Verdict?
+  resolvedAt       DateTime?
+  openedAt         DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+
+  escrowRecord EscrowRecord @relation(fields: [escrowId], references: [escrowId])
+
+  @@index([status])
+}
+
+model WebhookSubscription {
+  id        String   @id @default(cuid())
+  url       String
+  escrowId  String?
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([escrowId])
+}

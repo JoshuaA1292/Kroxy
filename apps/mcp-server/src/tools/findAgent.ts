@@ -1,17 +1,26 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerFindAgent(server: McpServer, apiUrl: string) {
-  server.tool(
+  const inputSchema: Record<string, z.ZodTypeAny> = {
+    capability: z.string().optional().describe('Skill/capability to filter by, e.g. "data-analysis"'),
+    maxPrice: z.number().positive().optional().describe('Maximum price in USDC, e.g. 5.0'),
+    minReputation: z.number().min(0).optional().describe('Minimum on-chain reputation score'),
+  };
+
+  registerTool(
+    server,
     'findAgent',
     'Find agents on the Kroxy network by capability, max price, and minimum reputation score.',
-    {
-      capability: z.string().optional().describe('Skill/capability to filter by, e.g. "data-analysis"'),
-      maxPrice: z.number().positive().optional().describe('Maximum price in USDC, e.g. 5.0'),
-      minReputation: z.number().min(0).optional().describe('Minimum on-chain reputation score'),
-    },
-    async ({ capability, maxPrice, minReputation }: { capability?: string; maxPrice?: number; minReputation?: number }) => {
+    inputSchema,
+    async (input) => {
+      const { capability, maxPrice, minReputation } = input as {
+        capability?: string;
+        maxPrice?: number;
+        minReputation?: number;
+      };
       const params = new URLSearchParams();
       if (capability) params.set('capability', capability);
       if (maxPrice !== undefined) params.set('maxPrice', String(maxPrice));

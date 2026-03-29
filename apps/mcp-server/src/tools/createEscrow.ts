@@ -1,13 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 const ConditionSchema = z.object({
-  type: z.enum(['http_status', 'json_field', 'latency_ms', 'uptime_percent']),
+  type: z.enum(['http_status', 'json_field', 'latency_ms', 'uptime_percent', 'deliverable_quality']),
   endpoint: z.string().url(),
   field: z.string().optional(),
-  operator: z.enum(['eq', 'gte', 'lte', 'contains']),
-  expected: z.union([z.string(), z.number(), z.boolean()]),
+  operator: z.enum(['eq', 'gte', 'lte', 'gt', 'lt', 'contains']),
+  expected: z.union([z.string(), z.number(), z.boolean(), z.object({}).passthrough()]),
 });
 
 // Full ConditionsDefinition shape matching the API (escrowId is filled by the SDK,
@@ -22,20 +23,30 @@ const ConditionsDefinitionSchema = z.object({
 });
 
 export function registerCreateEscrow(server: McpServer, apiUrl: string, apiKey: string, envPayerPrivateKey: string) {
-  server.tool(
+  const inputSchema: Record<string, z.ZodTypeAny> = {
+    payerPrivateKey: z
+      .string()
+      .optional()
+      .describe('Private key of the paying agent (omit if KROXY_PAYER_PRIVATE_KEY is set; kept server-side, TLS-protected)'),
+    payeeAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe('Recipient wallet address'),
+    amountUsdc: z.number().positive().describe('Amount in USDC, e.g. 5.0'),
+    conditions: ConditionsDefinitionSchema.describe('Full conditions definition — version, conditions array, window, interval, passRate'),
+    x402Reference: z.string().describe('Payment reference string for the x402 protocol'),
+  };
+
+  registerTool(
+    server,
     'createEscrow',
     'Create a conditional USDC escrow on the Kroxy network. Funds are released when HTTP conditions pass.',
-    {
-      payerPrivateKey: z
-        .string()
-        .optional()
-        .describe('Private key of the paying agent (omit if KROXY_PAYER_PRIVATE_KEY is set; kept server-side, TLS-protected)'),
-      payeeAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/).describe('Recipient wallet address'),
-      amountUsdc: z.number().positive().describe('Amount in USDC, e.g. 5.0'),
-      conditions: ConditionsDefinitionSchema.describe('Full conditions definition — version, conditions array, window, interval, passRate'),
-      x402Reference: z.string().describe('Payment reference string for the x402 protocol'),
-    },
-    async ({ payerPrivateKey, payeeAddress, amountUsdc, conditions, x402Reference }: { payerPrivateKey?: string; payeeAddress: string; amountUsdc: number; conditions: any; x402Reference: string }) => {
+    inputSchema,
+    async (input) => {
+      const { payerPrivateKey, payeeAddress, amountUsdc, conditions, x402Reference } = input as {
+        payerPrivateKey?: string;
+        payeeAddress: string;
+        amountUsdc: number;
+        conditions: unknown;
+        x402Reference: string;
+      };
       const resolvedKey = payerPrivateKey ?? envPayerPrivateKey;
       if (!resolvedKey) {
         throw new Error(

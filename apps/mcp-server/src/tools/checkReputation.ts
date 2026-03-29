@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerCheckReputation(server: McpServer, apiUrl: string) {
-  server.tool(
+  registerTool(
+    server,
     'checkReputation',
     'Check the on-chain reputation score for a wallet address on the Kroxy network.',
     {

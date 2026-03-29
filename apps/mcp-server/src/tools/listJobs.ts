@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerListJobs(server: McpServer, apiUrl: string) {
-  server.tool(
+  registerTool(
+    server,
     'listJobs',
     'Browse jobs on the Kroxy job board. Filter by status, capability, or limit the number of results.',
     {

@@ -1,9 +1,11 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { z } from 'zod';
 import { fetchWithRetry } from '../utils/fetchWithRetry';
 
 export function registerCancelJob(server: McpServer, apiUrl: string, apiKey: string) {
-  server.tool(
+  registerTool(
+    server,
     'cancelJob',
     'Cancel an OPEN job on the Kroxy job board. Only jobs in OPEN status (no accepted bid) can be cancelled.',
     {

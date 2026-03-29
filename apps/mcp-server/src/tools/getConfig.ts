@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerTool } from '../utils/registerTool';
 import { computeAddressFromPrivateKey } from '../utils/ethersAddress';
 
 export function registerGetConfig(
@@ -7,7 +8,8 @@ export function registerGetConfig(
   apiKey: string,
   payerPrivateKey: string
 ) {
-  server.tool(
+  registerTool(
+    server,
     'getConfig',
     'Show the current Kroxy MCP server configuration — which environment variables are set and what wallet address is active.',
     {},
