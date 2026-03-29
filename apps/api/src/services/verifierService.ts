@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
 import { prisma } from '../lib/prisma';
 import { appendAuditEvent } from './auditService';
-import { deliverWebhook } from './webhookService';
 import { getVerifierWallet } from '../lib/ethers';
 import { logger, escrowLogger } from '../lib/logger';
 import { openCase } from './courtService';
@@ -630,14 +629,6 @@ async function evaluateAndSettle(state: PollerState): Promise<void> {
           where: { escrowId: state.escrowId },
           data: { state: 'RELEASED', txHashSettled: txHash },
         });
-        await deliverWebhook(state.escrowId, 'PAYMENT_RELEASED', {
-          escrowId: state.escrowId,
-          payeeAddress: state.payeeAddress,
-          amountUsdc: state.amountUsdc.toString(),
-          txHash,
-          passRate,
-          demoMode: true,
-        });
         await appendAuditEvent({
           escrowId: state.escrowId,
           eventType: 'REPUTATION_UPDATED',
@@ -672,13 +663,6 @@ async function evaluateAndSettle(state: PollerState): Promise<void> {
         await prisma.escrowRecord.update({
           where: { escrowId: state.escrowId },
           data: { state: 'DISPUTED', txHashSettled: txHash },
-        });
-        await deliverWebhook(state.escrowId, 'DISPUTE_RAISED', {
-          escrowId: state.escrowId,
-          reason,
-          passRate,
-          txHash,
-          demoMode: true,
         });
         await appendAuditEvent({
           escrowId: state.escrowId,
@@ -718,15 +702,6 @@ async function evaluateAndSettle(state: PollerState): Promise<void> {
       await prisma.escrowRecord.update({
         where: { escrowId: state.escrowId },
         data: { state: 'RELEASED', txHashSettled: releaseReceipt.hash },
-      });
-
-      // Deliver webhooks for state change
-      await deliverWebhook(state.escrowId, 'PAYMENT_RELEASED', {
-        escrowId: state.escrowId,
-        payeeAddress: state.payeeAddress,
-        amountUsdc: state.amountUsdc.toString(),
-        txHash: releaseReceipt.hash,
-        passRate,
       });
 
       const repTx = await repContract.recordSuccess(state.payeeAddress, state.amountUsdc, state.escrowId);
@@ -771,13 +746,6 @@ async function evaluateAndSettle(state: PollerState): Promise<void> {
       await prisma.escrowRecord.update({
         where: { escrowId: state.escrowId },
         data: { state: 'DISPUTED', txHashSettled: disputeReceipt.hash },
-      });
-
-      await deliverWebhook(state.escrowId, 'DISPUTE_RAISED', {
-        escrowId: state.escrowId,
-        reason,
-        passRate,
-        txHash: disputeReceipt.hash,
       });
 
       // Non-blocking: open arbitration court case with 3 LLM judges
@@ -861,15 +829,6 @@ export async function manualRaiseDispute(
       data: { state: 'DISPUTED', txHashSettled: txHash },
     });
 
-    await deliverWebhook(escrowId, 'DISPUTE_RAISED', {
-      escrowId,
-      reason,
-      evidenceData,
-      manual: true,
-      txHash,
-      demoMode: true,
-    });
-
     await appendAuditEvent({
       escrowId,
       eventType: 'REPUTATION_UPDATED',
@@ -905,14 +864,6 @@ export async function manualRaiseDispute(
   await prisma.escrowRecord.update({
     where: { escrowId },
     data: { state: 'DISPUTED', txHashSettled: receipt.hash },
-  });
-
-  await deliverWebhook(escrowId, 'DISPUTE_RAISED', {
-    escrowId,
-    reason,
-    evidenceData,
-    manual: true,
-    txHash: receipt.hash,
   });
 
   const repTx = await repContract.recordDispute(state.payeeAddress, escrowId);
