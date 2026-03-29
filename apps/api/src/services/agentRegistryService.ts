@@ -1,4 +1,5 @@
-import { prisma, Prisma } from '@kroxy/db';
+import { Prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
 import { AgentProfileDTO } from '@kroxy/types';
 import { ethers } from 'ethers';
 import { getProvider } from '../lib/ethers';

@@ -1,10 +1,12 @@
-import { prisma, Prisma } from '@kroxy/db';
-import { JobPostingDTO, BidDTO, ConditionsDefinition } from '@kroxy/types';
-import { KroxySDK } from '@kroxy/sdk';
+import { Prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
+import { JobPostingDTO, BidDTO, ConditionsDefinition, Condition } from '@kroxy/types';
 import { logger } from '../lib/logger';
 import { triggerImmediateEvaluation, registerPoller } from './verifierService';
 import { registerEscrow } from './escrowService';
 import { randomBytes } from 'crypto';
+import { KroxySDK } from '@kroxy/sdk';
+import { ethers } from 'ethers';
 
 // ─── DTO mappers ──────────────────────────────────────────────────────────────
 
@@ -13,7 +15,7 @@ function bidToDTO(bid: {
   jobId: string;
   providerWallet: string;
   priceUsdc: { toString(): string };
-  etaSeconds: number;
+  etaSeconds: number | null;
   conditionsAccepted: boolean;
   message: string | null;
   status: string;
@@ -24,7 +26,7 @@ function bidToDTO(bid: {
     jobId: bid.jobId,
     providerWallet: bid.providerWallet,
     priceUsdc: bid.priceUsdc.toString(),
-    etaSeconds: bid.etaSeconds,
+    etaSeconds: bid.etaSeconds ?? undefined,
     conditionsAccepted: bid.conditionsAccepted,
     message: bid.message,
     status: bid.status as BidDTO['status'],
@@ -37,9 +39,9 @@ function jobToDTO(
     id: string;
     posterWallet: string;
     description: string;
-    budgetMaxUsdc: { toString(): string };
+    budgetMaxUsdc: { toString(): string } | null;
     requiredCaps: string[];
-    deadline: Date;
+    deadline: Date | null;
     conditionsJson: unknown;
     status: string;
     winningBidId: string | null;
@@ -54,9 +56,9 @@ function jobToDTO(
     id: job.id,
     posterWallet: job.posterWallet,
     description: job.description,
-    budgetMaxUsdc: job.budgetMaxUsdc.toString(),
+    budgetMaxUsdc: job.budgetMaxUsdc?.toString() ?? '0',
     requiredCaps: job.requiredCaps,
-    deadline: job.deadline.toISOString(),
+    deadline: job.deadline?.toISOString() ?? undefined,
     conditionsJson: (job.conditionsJson as ConditionsDefinition | null) ?? null,
     status: job.status as JobPostingDTO['status'],
     winningBidId: job.winningBidId,
@@ -65,6 +67,70 @@ function jobToDTO(
     bids: job.bids?.map(bidToDTO),
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
+  };
+}
+
+const DEFAULT_API_URL = 'https://api-production-1b45.up.railway.app';
+
+const SERVER_ENFORCED_QUALITY_POLICY = {
+  minSummaryWords: 120,
+  minSummaryChars: 600,
+  minSentences: 3,
+  minKeyFindings: 3,
+  minFindingChars: 20,
+  minSources: 2,
+  minSourceDomains: 2,
+  minLexicalDiversity: 0.45,
+  requireCompletedStatus: true,
+  forbidPlaceholderPhrases: true,
+} as const;
+
+function verifierApiBase(): string {
+  const base = process.env.KROXY_API_URL ?? process.env.PUBLIC_API_URL ?? DEFAULT_API_URL;
+  return base.replace(/\/$/, '');
+}
+
+function hasSameCondition(
+  conditions: Condition[],
+  type: Condition['type'],
+  endpoint: string,
+  field?: string
+): boolean {
+  return conditions.some((c) => c.type === type && c.endpoint === endpoint && (c.field ?? '') === (field ?? ''));
+}
+
+/**
+ * Enforce minimum verification gates server-side so client-supplied conditions
+ * cannot weaken escrow settlement policy.
+ */
+function withServerEnforcedConditions(jobId: string, base: ConditionsDefinition): ConditionsDefinition {
+  const endpoint = `${verifierApiBase()}/api/jobs/${encodeURIComponent(jobId)}`;
+  const conditions = [...base.conditions];
+
+  if (!hasSameCondition(conditions, 'json_field', endpoint, 'status')) {
+    conditions.push({
+      type: 'json_field',
+      endpoint,
+      field: 'status',
+      operator: 'eq',
+      expected: 'COMPLETED',
+    });
+  }
+
+  if (!hasSameCondition(conditions, 'deliverable_quality', endpoint, 'deliverable')) {
+    conditions.push({
+      type: 'deliverable_quality',
+      endpoint,
+      field: 'deliverable',
+      operator: 'gte',
+      expected: { ...SERVER_ENFORCED_QUALITY_POLICY },
+    });
+  }
+
+  return {
+    ...base,
+    conditions,
+    requiredPassRate: Math.max(base.requiredPassRate, 0.8),
   };
 }
 
@@ -143,7 +209,6 @@ export interface AcceptBidResult {
 export async function acceptBid(
   jobId: string,
   bidId: string,
-  payerPrivateKey: string
 ): Promise<AcceptBidResult> {
   const [job, bid] = await Promise.all([
     prisma.jobPosting.findUnique({ where: { id: jobId }, include: { bids: true } }),
@@ -161,11 +226,12 @@ export async function acceptBid(
     throw Object.assign(new Error(`Bid is not pending (status: ${bid.status})`), { statusCode: 409 });
   }
 
-  // Build conditions from job's conditionsJson if present
+  // Build conditions from job's conditionsJson if present, then enforce
+  // server-defined minimum quality gates.
   const conditions = job.conditionsJson as ConditionsDefinition | null;
   const demoMode = process.env.KROXY_DEMO_MODE === '1';
 
-  const baseConditions = conditions ?? {
+  const submittedConditions = conditions ?? {
     version: '1.0',
     escrowId: '',
     conditions: [],
@@ -173,6 +239,7 @@ export async function acceptBid(
     checkIntervalSeconds: 60,
     requiredPassRate: 1.0,
   };
+  const baseConditions = withServerEnforcedConditions(jobId, submittedConditions);
 
   const result = demoMode
     ? await (async () => {
@@ -202,14 +269,37 @@ export async function acceptBid(
         return { escrowId, txHash };
       })()
     : await (async () => {
-        const sdk = new KroxySDK();
-        return sdk.createEscrow({
+        const payerPrivateKey = process.env.KROXY_PAYER_PRIVATE_KEY ?? '';
+        if (!payerPrivateKey) {
+          throw Object.assign(
+            new Error(
+              'Live mode requires KROXY_PAYER_PRIVATE_KEY on the server. ' +
+              'No private key is accepted from API request bodies.'
+            ),
+            { statusCode: 400 }
+          );
+        }
+
+        const payerAddress = new ethers.Wallet(payerPrivateKey).address.toLowerCase();
+        if (payerAddress !== job.posterWallet.toLowerCase()) {
+          throw Object.assign(
+            new Error(
+              `KROXY_PAYER_PRIVATE_KEY address ${payerAddress} does not match job poster ${job.posterWallet}. ` +
+              'Set KROXY_PAYER_PRIVATE_KEY to the poster wallet key, or use demo mode.'
+            ),
+            { statusCode: 400 }
+          );
+        }
+
+        const sdk = new KroxySDK({ apiBase: verifierApiBase() });
+        const chainResult = await sdk.createEscrow({
           payerPrivateKey,
           payeeAddress: bid.providerWallet,
           amountUsdc: Number(bid.priceUsdc.toString()),
-          conditions: baseConditions,
+          conditions: { ...baseConditions, escrowId: '' },
           x402Reference: `job:${jobId}:bid:${bidId}`,
         });
+        return { escrowId: chainResult.escrowId, txHash: chainResult.txHash };
       })();
 
   // In production, KroxySDK.createEscrow() already registers escrow + poller via API.

@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { evaluate, getNestedValue, isEndpointAllowed } from '../services/verifierService';
+
+// Mock @kroxy/db so PrismaClient is never instantiated during unit tests.
+// prisma.ts calls `new PrismaClient(...)` at module load time; without this
+// mock the test fails unless `prisma generate` has been run in CI.
+vi.mock('@kroxy/db', () => {
+  const PrismaClient = vi.fn().mockImplementation(() => ({
+    escrowRecord: { findUnique: vi.fn(), update: vi.fn() },
+    conditionCheck: { create: vi.fn() },
+    auditEvent: { create: vi.fn(), findMany: vi.fn() },
+    $queryRaw: vi.fn(),
+  }));
+  return { PrismaClient };
+});
+
+import { assessDeliverableQuality, evaluate, getNestedValue, isEndpointAllowed } from '../services/verifierService';
 
 // ─── evaluate() ───────────────────────────────────────────────────────────────
 
@@ -42,6 +56,15 @@ describe('evaluate()', () => {
     });
     it('fails when substring is absent', () => {
       expect(evaluate('hello world', 'contains', 'kroxy')).toBe(false);
+    });
+  });
+
+  describe('gt/lt', () => {
+    it('supports strict numeric comparisons', () => {
+      expect(evaluate(10, 'gt', 5)).toBe(true);
+      expect(evaluate(5, 'gt', 5)).toBe(false);
+      expect(evaluate(3, 'lt', 8)).toBe(true);
+      expect(evaluate(8, 'lt', 8)).toBe(false);
     });
   });
 });
@@ -198,5 +221,97 @@ describe('uptime_percent condition type', () => {
     const body = { system: { uptime_pct: 99.8 } };
     const value = getNestedValue(body, 'system.uptime_pct');
     expect(evaluate(value, 'gte', 99)).toBe(true);
+  });
+});
+
+// ─── deliverable_quality heuristics ──────────────────────────────────────────
+
+describe('assessDeliverableQuality()', () => {
+  it('passes for a structured, sourced deliverable', () => {
+    const result = assessDeliverableQuality(
+      {
+        status: 'COMPLETED',
+        deliverable: {
+          summary:
+            'Kroxy enables conditional settlement for agent work by evaluating objective quality gates before any release. ' +
+            'Verification checks run repeatedly over a fixed window so temporary outages or stale responses do not immediately decide payout outcomes. ' +
+            'This report compares custodial escrow, contract-native escrow, and hybrid relay patterns across trust assumptions, operational risk, and recovery paths. ' +
+            'It explains common failure modes including missing delivery metadata, source spoofing, low-information summaries, and delayed provider callbacks. ' +
+            'For each failure class it maps practical mitigations such as multi-signal evaluation, source-domain diversity checks, and minimum lexical diversity thresholds. ' +
+            'The rollout section covers observability, alerting, staged deploys, dispute escalation criteria, and contract-safe rollback procedures. ' +
+            'The final section proposes regression tests that validate condition parsing, check scheduling, dispute triggers, and audit event integrity over time.',
+          keyFindings: [
+            'Escrow policies should require more than one quality signal and include source checks.',
+            'Condition evaluation must process every condition in the set, not only the first one.',
+            'Dispute fallback should include deterministic audit events and reason capture.',
+          ],
+          sources: [
+            'https://example.com/research/a',
+            'https://docs.example.org/specs/escrow',
+            'https://news.example.net/analysis',
+          ],
+        },
+      },
+      {
+        minSummaryWords: 30,
+        minSummaryChars: 180,
+        minSentences: 3,
+        minKeyFindings: 3,
+        minSources: 2,
+        minSourceDomains: 2,
+        minLexicalDiversity: 0.35,
+      }
+    );
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails low-quality placeholder output', () => {
+    const result = assessDeliverableQuality(
+      {
+        status: 'COMPLETED',
+        deliverable: {
+          summary: 'TODO placeholder. Lorem ipsum.',
+          keyFindings: ['short'],
+          sources: ['not-a-url'],
+        },
+      },
+      {
+        minSummaryWords: 20,
+        minSummaryChars: 120,
+        minKeyFindings: 2,
+        minSources: 1,
+        minSourceDomains: 1,
+      }
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.reason).toMatch(/placeholder|summary words|source/i);
+  });
+
+  it('enforces server floors even if caller requests weak thresholds', () => {
+    const result = assessDeliverableQuality(
+      {
+        status: 'COMPLETED',
+        deliverable: {
+          summary: 'short text',
+          keyFindings: ['one'],
+          sources: ['https://example.com/one'],
+        },
+      },
+      {
+        minSummaryWords: 1,
+        minSummaryChars: 1,
+        minSentences: 1,
+        minKeyFindings: 1,
+        minSources: 1,
+        minSourceDomains: 1,
+        minLexicalDiversity: 0.01,
+        forbidPlaceholderPhrases: false,
+      }
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.reason).toMatch(/summary words|summary chars|source domains/i);
   });
 });

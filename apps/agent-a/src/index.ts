@@ -118,7 +118,7 @@ async function runDemo() {
 
   console.log('\n[Agent A] Step 5: Fetching final escrow state...');
   const stateRes = await fetch(`${KROXY_API_URL}/api/escrows/${escrowResult.escrowId}`);
-  const state = await stateRes.json();
+  const state = await stateRes.json() as { state: string; txHashSettled?: string };
 
   console.log(`\n[Agent A] Final state: ${state.state}`);
 
@@ -134,7 +134,7 @@ async function runDemo() {
 
   console.log('\n[Agent A] Full audit trail:');
   const auditRes = await fetch(`${KROXY_API_URL}/api/audit/${escrowResult.escrowId}`);
-  const auditEvents = await auditRes.json();
+  const auditEvents = await auditRes.json() as Array<{ sequence: number; eventType: string; createdAt: string; txHash?: string }>;
   for (const event of auditEvents) {
     console.log(`  [${event.sequence}] ${event.eventType} — ${event.createdAt}`);
     if (event.txHash) console.log(`       TX: ${event.txHash}`);

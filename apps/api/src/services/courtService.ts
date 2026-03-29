@@ -1,8 +1,9 @@
 import { ethers } from 'ethers';
-import { prisma } from '@kroxy/db';
+import { prisma } from '../lib/prisma';
 import { appendAuditEvent } from './auditService';
 import { getVerifierWallet, getVerifierWalletSepolia, getSepoliaProvider } from '../lib/ethers';
 import { logger } from '../lib/logger';
+import { lavaAnthropic, lavaAvailable } from '../lib/lava';
 
 // ─── Contract ABI ─────────────────────────────────────────────────────────────
 
@@ -165,21 +166,23 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   ]);
 }
 
+/**
+ * Judge Alpha — Claude, routed through Lava's forward proxy when LAVA_SECRET_KEY is set.
+ * All inference costs are tracked in the Lava dashboard.
+ */
 async function callClaudeJudge(evidence: object, personaIndex: number): Promise<JudgeResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set');
-  const { default: Anthropic } = await import('@anthropic-ai/sdk');
-  const client = new Anthropic({ apiKey });
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
 
-  const msg = await client.messages.create({
+  const text = await lavaAnthropic({
     model: 'claude-sonnet-4-6',
     max_tokens: 256,
     system: JUDGE_SYSTEM_PROMPTS[personaIndex],
     messages: [{ role: 'user', content: buildUserPrompt(evidence) }],
   });
 
-  const block = msg.content[0] as { type: string; text?: string };
-  const text = block.text ?? '';
+  const via = lavaAvailable() ? 'Lava' : 'direct';
+  logger.debug({ judge: 'alpha', via }, 'Claude judge completed');
+
   const cleaned = text.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
   return JSON.parse(cleaned) as JudgeResult;
 }

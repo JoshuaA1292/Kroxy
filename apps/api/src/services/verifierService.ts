@@ -205,114 +205,348 @@ interface CheckResult {
   failReason?: string;
 }
 
-async function runConditionCheck(conditions: Condition[], _version: string): Promise<CheckResult> {
-  for (const condition of conditions) {
-    // SSRF guard — validate before fetching
-    const guard = isEndpointAllowed(condition.endpoint);
-    if (!guard.allowed) {
-      return {
-        passed: false,
-        endpoint: condition.endpoint,
-        httpStatus: 0,
-        responseBody: {},
-        failReason: `SSRF guard: ${guard.reason}`,
-      };
-    }
+interface DeliverableQualityPolicy {
+  minSummaryWords: number;
+  minSummaryChars: number;
+  minSentences: number;
+  minKeyFindings: number;
+  minFindingChars: number;
+  minSources: number;
+  minSourceDomains: number;
+  minLexicalDiversity: number;
+  requireCompletedStatus: boolean;
+  forbidPlaceholderPhrases: boolean;
+}
 
+interface DeliverableQualityResult {
+  passed: boolean;
+  reason?: string;
+  metrics: Record<string, unknown>;
+}
+
+const DEFAULT_DELIVERABLE_QUALITY_POLICY: DeliverableQualityPolicy = {
+  minSummaryWords: 120,
+  minSummaryChars: 600,
+  minSentences: 3,
+  minKeyFindings: 3,
+  minFindingChars: 20,
+  minSources: 2,
+  minSourceDomains: 2,
+  minLexicalDiversity: 0.45,
+  requireCompletedStatus: true,
+  forbidPlaceholderPhrases: true,
+};
+
+const PLACEHOLDER_PATTERN =
+  /\b(lorem ipsum|placeholder|todo|tbd|as an ai language model|i cannot browse)\b/i;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toWordTokens(text: string): string[] {
+  return text.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+}
+
+function countSentences(text: string): number {
+  return text
+    .split(/[.!?]+/)
+    .map((s) => s.trim())
+    .filter(Boolean).length;
+}
+
+function toNumberOrDefault(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBooleanOrDefault(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function parseDeliverablePolicy(expected: unknown): DeliverableQualityPolicy {
+  if (!isRecord(expected)) return { ...DEFAULT_DELIVERABLE_QUALITY_POLICY };
+  // Server floors: caller-supplied thresholds may be stricter, never weaker.
+  const floor = DEFAULT_DELIVERABLE_QUALITY_POLICY;
+  return {
+    minSummaryWords: Math.max(toNumberOrDefault(expected.minSummaryWords, floor.minSummaryWords), floor.minSummaryWords),
+    minSummaryChars: Math.max(toNumberOrDefault(expected.minSummaryChars, floor.minSummaryChars), floor.minSummaryChars),
+    minSentences: Math.max(toNumberOrDefault(expected.minSentences, floor.minSentences), floor.minSentences),
+    minKeyFindings: Math.max(toNumberOrDefault(expected.minKeyFindings, floor.minKeyFindings), floor.minKeyFindings),
+    minFindingChars: Math.max(toNumberOrDefault(expected.minFindingChars, floor.minFindingChars), floor.minFindingChars),
+    minSources: Math.max(toNumberOrDefault(expected.minSources, floor.minSources), floor.minSources),
+    minSourceDomains: Math.max(toNumberOrDefault(expected.minSourceDomains, floor.minSourceDomains), floor.minSourceDomains),
+    minLexicalDiversity: Math.max(
+      toNumberOrDefault(expected.minLexicalDiversity, floor.minLexicalDiversity),
+      floor.minLexicalDiversity
+    ),
+    requireCompletedStatus: floor.requireCompletedStatus || toBooleanOrDefault(expected.requireCompletedStatus, false),
+    forbidPlaceholderPhrases: floor.forbidPlaceholderPhrases || toBooleanOrDefault(expected.forbidPlaceholderPhrases, false),
+  };
+}
+
+function sourceUrlFromItem(item: unknown): string | null {
+  if (typeof item === 'string') return item;
+  if (isRecord(item) && typeof item.url === 'string') return item.url;
+  return null;
+}
+
+function countUniqueSourceDomains(rawSources: unknown): {
+  sourceCount: number;
+  validSourceCount: number;
+  uniqueDomainCount: number;
+} {
+  if (!Array.isArray(rawSources)) {
+    return { sourceCount: 0, validSourceCount: 0, uniqueDomainCount: 0 };
+  }
+
+  const domains = new Set<string>();
+  let valid = 0;
+  for (const item of rawSources) {
+    const raw = sourceUrlFromItem(item);
+    if (!raw) continue;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const startMs = Date.now();
-
-      const res = await fetch(condition.endpoint, { signal: controller.signal });
-      const latencyMs = Date.now() - startMs;
-      clearTimeout(timeout);
-
-      let body: unknown = {};
-      const contentType = res.headers.get('content-type') ?? '';
-      if (contentType.includes('application/json')) {
-        body = await res.json();
-      } else {
-        body = await res.text();
-      }
-
-      if (condition.type === 'http_status') {
-        const passed = evaluate(res.status, condition.operator, condition.expected as number);
-        if (!passed) {
-          return {
-            passed: false,
-            endpoint: condition.endpoint,
-            httpStatus: res.status,
-            responseBody: body,
-            latencyMs,
-            failReason: `HTTP ${res.status} failed: expected ${condition.operator} ${condition.expected}`,
-          };
-        }
-      }
-
-      if (condition.type === 'json_field') {
-        const value = getNestedValue(body, condition.field ?? '');
-        const passed = evaluate(value, condition.operator, condition.expected);
-        if (!passed) {
-          return {
-            passed: false,
-            endpoint: condition.endpoint,
-            httpStatus: res.status,
-            responseBody: body,
-            latencyMs,
-            failReason: `Field ${condition.field} = ${JSON.stringify(value)} failed: expected ${condition.operator} ${condition.expected}`,
-          };
-        }
-      }
-
-      if (condition.type === 'latency_ms') {
-        // Measures actual end-to-end HTTP response time and compares it to threshold.
-        // e.g. { type: 'latency_ms', operator: 'lte', expected: 500 } means p99 < 500ms.
-        const passed = evaluate(latencyMs, condition.operator, condition.expected as number);
-        if (!passed) {
-          return {
-            passed: false,
-            endpoint: condition.endpoint,
-            httpStatus: res.status,
-            responseBody: body,
-            latencyMs,
-            failReason: `Latency ${latencyMs}ms failed: expected ${condition.operator} ${condition.expected}ms`,
-          };
-        }
-      }
-
-      if (condition.type === 'uptime_percent') {
-        // Reads a numeric uptime percentage from a JSON field and compares it.
-        // The endpoint must return a JSON body; 'field' specifies the path to
-        // the uptime value (e.g. "status.uptime_pct").
-        const value = getNestedValue(body, condition.field ?? 'uptime');
-        const passed = evaluate(value, condition.operator, condition.expected);
-        if (!passed) {
-          return {
-            passed: false,
-            endpoint: condition.endpoint,
-            httpStatus: res.status,
-            responseBody: body,
-            latencyMs,
-            failReason: `Uptime ${JSON.stringify(value)}% failed: expected ${condition.operator} ${condition.expected}%`,
-          };
-        }
-      }
-
-      return { passed: true, endpoint: condition.endpoint, httpStatus: res.status, responseBody: body, latencyMs };
-    } catch (err) {
-      return {
-        passed: false,
-        endpoint: condition.endpoint,
-        httpStatus: 0,
-        responseBody: {},
-        failReason: `Network error: ${(err as Error).message}`,
-      };
+      const parsed = new URL(raw);
+      if (!['http:', 'https:'].includes(parsed.protocol)) continue;
+      valid++;
+      domains.add(parsed.hostname.toLowerCase());
+    } catch {
+      continue;
     }
   }
 
+  return {
+    sourceCount: rawSources.length,
+    validSourceCount: valid,
+    uniqueDomainCount: domains.size,
+  };
+}
+
+/**
+ * Heuristic quality gate for deliverables. This is intentionally multi-signal
+ * (structure + diversity + sourcing), not a single word-count threshold.
+ */
+export function assessDeliverableQuality(
+  responseBody: unknown,
+  expected: unknown,
+  field?: string
+): DeliverableQualityResult {
+  const policy = parseDeliverablePolicy(expected);
+  const bodyObj = isRecord(responseBody) ? responseBody : {};
+
+  const status = String(bodyObj.status ?? '');
+  const deliverableRaw =
+    (field ? getNestedValue(responseBody, field) : undefined) ??
+    bodyObj.deliverable ??
+    responseBody;
+
+  if (!isRecord(deliverableRaw)) {
+    return {
+      passed: false,
+      reason: 'deliverable is missing or not an object',
+      metrics: { status, hasDeliverableObject: false },
+    };
+  }
+
+  const summary = typeof deliverableRaw.summary === 'string' ? deliverableRaw.summary.trim() : '';
+  const keyFindingsRaw = Array.isArray(deliverableRaw.keyFindings) ? deliverableRaw.keyFindings : [];
+  const findingLengths = keyFindingsRaw
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim().length);
+  const meaningfulFindings = findingLengths.filter((n) => n >= policy.minFindingChars).length;
+
+  const tokens = toWordTokens(summary);
+  const uniqueTokens = new Set(tokens);
+  const lexicalDiversity = tokens.length > 0 ? uniqueTokens.size / tokens.length : 0;
+  const sentenceCount = countSentences(summary);
+
+  const sourceStats = countUniqueSourceDomains(deliverableRaw.sources);
+  const hasPlaceholder = policy.forbidPlaceholderPhrases && PLACEHOLDER_PATTERN.test(summary);
+
+  const failures: string[] = [];
+  if (policy.requireCompletedStatus && status !== 'COMPLETED') {
+    failures.push(`status=${status || 'unknown'} (must be COMPLETED)`);
+  }
+  if (summary.length < policy.minSummaryChars) {
+    failures.push(`summary chars ${summary.length} < ${policy.minSummaryChars}`);
+  }
+  if (tokens.length < policy.minSummaryWords) {
+    failures.push(`summary words ${tokens.length} < ${policy.minSummaryWords}`);
+  }
+  if (sentenceCount < policy.minSentences) {
+    failures.push(`summary sentences ${sentenceCount} < ${policy.minSentences}`);
+  }
+  if (meaningfulFindings < policy.minKeyFindings) {
+    failures.push(`key findings ${meaningfulFindings} < ${policy.minKeyFindings}`);
+  }
+  if (sourceStats.validSourceCount < policy.minSources) {
+    failures.push(`valid sources ${sourceStats.validSourceCount} < ${policy.minSources}`);
+  }
+  if (sourceStats.uniqueDomainCount < policy.minSourceDomains) {
+    failures.push(`source domains ${sourceStats.uniqueDomainCount} < ${policy.minSourceDomains}`);
+  }
+  if (lexicalDiversity < policy.minLexicalDiversity) {
+    failures.push(
+      `lexical diversity ${lexicalDiversity.toFixed(2)} < ${policy.minLexicalDiversity.toFixed(2)}`
+    );
+  }
+  if (hasPlaceholder) {
+    failures.push('summary contains placeholder/disclaimer phrasing');
+  }
+
+  const metrics: Record<string, unknown> = {
+    status,
+    summaryChars: summary.length,
+    summaryWords: tokens.length,
+    sentenceCount,
+    keyFindingsTotal: keyFindingsRaw.length,
+    keyFindingsMeaningful: meaningfulFindings,
+    lexicalDiversity,
+    ...sourceStats,
+    hasPlaceholder,
+  };
+
+  if (failures.length > 0) {
+    return {
+      passed: false,
+      reason: failures.join('; '),
+      metrics,
+    };
+  }
+
+  return { passed: true, metrics };
+}
+
+async function evaluateCondition(condition: Condition): Promise<CheckResult> {
+  // SSRF guard — validate before fetching
+  const guard = isEndpointAllowed(condition.endpoint);
+  if (!guard.allowed) {
+    return {
+      passed: false,
+      endpoint: condition.endpoint,
+      httpStatus: 0,
+      responseBody: {},
+      failReason: `SSRF guard: ${guard.reason}`,
+    };
+  }
+
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const controller = new AbortController();
+    timeout = setTimeout(() => controller.abort(), 5000);
+    const startMs = Date.now();
+
+    const res = await fetch(condition.endpoint, { signal: controller.signal });
+    const latencyMs = Date.now() - startMs;
+
+    let body: unknown = {};
+    const contentType = res.headers.get('content-type') ?? '';
+    if (contentType.includes('application/json')) {
+      body = await res.json();
+    } else {
+      body = await res.text();
+    }
+
+    if (condition.type === 'http_status') {
+      const passed = evaluate(res.status, condition.operator, condition.expected as number);
+      if (!passed) {
+        return {
+          passed: false,
+          endpoint: condition.endpoint,
+          httpStatus: res.status,
+          responseBody: body,
+          latencyMs,
+          failReason: `HTTP ${res.status} failed: expected ${condition.operator} ${condition.expected}`,
+        };
+      }
+    } else if (condition.type === 'json_field') {
+      const value = getNestedValue(body, condition.field ?? '');
+      const passed = evaluate(value, condition.operator, condition.expected);
+      if (!passed) {
+        return {
+          passed: false,
+          endpoint: condition.endpoint,
+          httpStatus: res.status,
+          responseBody: body,
+          latencyMs,
+          failReason: `Field ${condition.field} = ${JSON.stringify(value)} failed: expected ${condition.operator} ${condition.expected}`,
+        };
+      }
+    } else if (condition.type === 'latency_ms') {
+      const passed = evaluate(latencyMs, condition.operator, condition.expected as number);
+      if (!passed) {
+        return {
+          passed: false,
+          endpoint: condition.endpoint,
+          httpStatus: res.status,
+          responseBody: body,
+          latencyMs,
+          failReason: `Latency ${latencyMs}ms failed: expected ${condition.operator} ${condition.expected}ms`,
+        };
+      }
+    } else if (condition.type === 'uptime_percent') {
+      const value = getNestedValue(body, condition.field ?? 'uptime');
+      const passed = evaluate(value, condition.operator, condition.expected);
+      if (!passed) {
+        return {
+          passed: false,
+          endpoint: condition.endpoint,
+          httpStatus: res.status,
+          responseBody: body,
+          latencyMs,
+          failReason: `Uptime ${JSON.stringify(value)}% failed: expected ${condition.operator} ${condition.expected}%`,
+        };
+      }
+    } else if (condition.type === 'deliverable_quality') {
+      const quality = assessDeliverableQuality(body, condition.expected, condition.field);
+      if (!quality.passed) {
+        return {
+          passed: false,
+          endpoint: condition.endpoint,
+          httpStatus: res.status,
+          responseBody: quality.metrics,
+          latencyMs,
+          failReason: `Deliverable quality failed: ${quality.reason}`,
+        };
+      }
+    }
+
+    return { passed: true, endpoint: condition.endpoint, httpStatus: res.status, responseBody: body, latencyMs };
+  } catch (err) {
+    return {
+      passed: false,
+      endpoint: condition.endpoint,
+      httpStatus: 0,
+      responseBody: {},
+      failReason: `Network error: ${(err as Error).message}`,
+    };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function runConditionCheck(conditions: Condition[], _version: string): Promise<CheckResult> {
   // No conditions defined — trivially passes
-  return { passed: true, endpoint: '', httpStatus: 0, responseBody: {} };
+  if (!conditions.length) {
+    return { passed: true, endpoint: '', httpStatus: 0, responseBody: {} };
+  }
+
+  let lastResult: CheckResult = { passed: true, endpoint: '', httpStatus: 0, responseBody: {} };
+
+  // All conditions must pass for this check interval.
+  for (const condition of conditions) {
+    const result = await evaluateCondition(condition);
+    if (!result.passed) return result;
+    lastResult = result;
+  }
+
+  return {
+    passed: true,
+    endpoint: conditions.length === 1 ? lastResult.endpoint : `all:${conditions.length}`,
+    httpStatus: lastResult.httpStatus,
+    responseBody: lastResult.responseBody,
+    latencyMs: lastResult.latencyMs,
+  };
 }
 
 async function executeSingleCheck(state: PollerState): Promise<CheckResult> {
@@ -697,7 +931,7 @@ export async function manualRaiseDispute(
 
 export function evaluate(
   actual: unknown,
-  operator: 'eq' | 'gte' | 'lte' | 'contains',
+  operator: 'eq' | 'gte' | 'lte' | 'gt' | 'lt' | 'contains',
   expected: unknown
 ): boolean {
   switch (operator) {
@@ -707,6 +941,10 @@ export function evaluate(
       return Number(actual) >= Number(expected);
     case 'lte':
       return Number(actual) <= Number(expected);
+    case 'gt':
+      return Number(actual) > Number(expected);
+    case 'lt':
+      return Number(actual) < Number(expected);
     case 'contains':
       return String(actual).includes(String(expected));
     default:
