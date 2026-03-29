@@ -1,18 +1,13 @@
 #!/usr/bin/env node
 
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import readline from 'node:readline/promises';
+import { demoDerivedAddress } from '../dist/src/utils/wallet.js';
 
 const DEFAULT_API_URL = 'https://api-production-1b45.up.railway.app';
-
-function demoDerivedAddress() {
-  const hash = createHash('sha256').update('kroxy-demo-wallet').digest('hex');
-  return `0x${hash.slice(0, 40)}`;
-}
 
 function resolveConfigPath() {
   const explicit = process.env.OPENCLAW_CONFIG_PATH?.trim();

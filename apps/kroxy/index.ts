@@ -1,5 +1,5 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
-import { createHash } from 'node:crypto';
+import { demoDerivedAddress } from './src/utils/wallet.js';
 import { hireParams, executeHire } from './src/tools/hire.js';
 import { offerParams, executeOffer } from './src/tools/offer.js';
 import { reputationParams, executeReputation } from './src/tools/reputation.js';
@@ -23,11 +23,6 @@ type HistoryToolParams = Parameters<typeof executeHistory>[0];
 type AutoagentToolParams = Parameters<typeof executeAutoagent>[0];
 
 const DEFAULT_API_URL = 'https://api-production-1b45.up.railway.app';
-
-function demoDerivedAddress(): string {
-  const hash = createHash('sha256').update('kroxy-demo-wallet').digest('hex');
-  return `0x${hash.slice(0, 40)}`;
-}
 
 export default {
   id: 'kroxy',
