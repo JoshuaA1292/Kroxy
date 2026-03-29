@@ -1,6 +1,6 @@
 {
   "name": "@kroxy/kroxy",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "type": "module",
   "description": "Trustless agent-to-agent payments via USDC escrow on Base blockchain",
   "license": "MIT",
