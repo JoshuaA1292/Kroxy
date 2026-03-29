@@ -17,6 +17,7 @@ import { registerCheckEscrowStatus } from './tools/checkEscrowStatus';
 import { registerRaiseDispute } from './tools/raiseDispute';
 import { registerCancelJob } from './tools/cancelJob';
 import { registerGetConfig } from './tools/getConfig';
+import { registerSmartMatch } from './tools/smartMatch';
 
 const API_URL = process.env.KROXY_API_URL ?? 'http://localhost:3001';
 const API_KEY = process.env.KROXY_API_KEY ?? '';
@@ -42,6 +43,7 @@ registerCheckEscrowStatus(server, API_URL);
 registerRaiseDispute(server, API_URL);
 registerCancelJob(server, API_URL, API_KEY);
 registerGetConfig(server, API_URL, API_KEY, PAYER_PRIVATE_KEY);
+registerSmartMatch(server, API_URL);
 
 async function main() {
   const transport = new StdioServerTransport();
