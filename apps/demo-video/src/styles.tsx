@@ -1,25 +1,28 @@
+import React from "react";
 import { interpolate } from "remotion";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 export const C = {
-  bg: "#05050e",
-  surface: "#0c0c1d",
-  surfaceHigh: "#11112b",
-  border: "#1c1c42",
-  violet: "#7c3aed",
-  violetDim: "#4c1d95",
-  violetGlow: "rgba(124,58,237,0.25)",
-  cyan: "#22d3ee",
-  cyanGlow: "rgba(34,211,238,0.2)",
-  green: "#10b981",
-  greenGlow: "rgba(16,185,129,0.2)",
-  amber: "#f59e0b",
-  red: "#ef4444",
-  text: "#e2e8f0",
-  muted: "#4b5563",
-  dim: "#1e2030",
+  bg: "#070a15",
+  surface: "#111930",
+  surfaceHigh: "#182140",
+  border: "#2a3458",
+  violet: "#8c6dff",
+  violetDim: "#4a3699",
+  violetGlow: "rgba(140,109,255,0.26)",
+  cyan: "#47c9ff",
+  cyanGlow: "rgba(71,201,255,0.24)",
+  green: "#2ddf8f",
+  greenGlow: "rgba(45,223,143,0.24)",
+  amber: "#ffb23e",
+  mars: "#ff7a3d",
+  marsGlow: "rgba(255,122,61,0.25)",
+  red: "#ff5d5d",
+  text: "#f5f7ff",
+  muted: "#98a4c7",
+  dim: "#202a4a",
   mono: '"JetBrains Mono","Fira Code","Consolas",monospace',
-  sans: '"Inter","Helvetica Neue",system-ui,sans-serif',
+  sans: '"Sora","Avenir Next","Poppins",system-ui,sans-serif',
 };
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
@@ -53,8 +56,10 @@ export const Grid: React.FC = () => (
       position: "absolute",
       inset: 0,
       backgroundImage: `
-        linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)
+        radial-gradient(circle at 15% 10%, rgba(255,122,61,0.08) 0%, transparent 35%),
+        radial-gradient(circle at 80% 85%, rgba(71,201,255,0.1) 0%, transparent 45%),
+        linear-gradient(rgba(140,109,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(140,109,255,0.05) 1px, transparent 1px)
       `,
       backgroundSize: "64px 64px",
       pointerEvents: "none",
@@ -68,7 +73,7 @@ export const Vignette: React.FC = () => (
       position: "absolute",
       inset: 0,
       background:
-        "radial-gradient(ellipse at center, transparent 40%, rgba(5,5,14,0.85) 100%)",
+        "radial-gradient(ellipse at center, transparent 36%, rgba(7,10,21,0.9) 100%)",
       pointerEvents: "none",
     }}
   />
@@ -93,6 +98,3 @@ export const GlowDot: React.FC<{ x: number; y: number; color?: string; size?: nu
     }}
   />
 );
-
-// React needs to be in scope for JSX
-import React from "react";

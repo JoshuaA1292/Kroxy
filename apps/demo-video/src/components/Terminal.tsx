@@ -20,7 +20,7 @@ interface TerminalProps {
 
 export const Terminal: React.FC<TerminalProps> = ({
   lines,
-  width = 720,
+  width = 980,
   title = "terminal",
 }) => {
   const frame = useCurrentFrame();
@@ -31,10 +31,10 @@ export const Terminal: React.FC<TerminalProps> = ({
         width,
         background: C.surface,
         border: `1px solid ${C.border}`,
-        borderRadius: 12,
+        borderRadius: 16,
         overflow: "hidden",
         fontFamily: C.mono,
-        fontSize: 15,
+        fontSize: 20,
         boxShadow: `0 0 40px rgba(124,58,237,0.12), 0 24px 48px rgba(0,0,0,0.6)`,
       }}
     >
@@ -43,8 +43,8 @@ export const Terminal: React.FC<TerminalProps> = ({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          padding: "10px 16px",
+          gap: 10,
+          padding: "14px 20px",
           background: C.surfaceHigh,
           borderBottom: `1px solid ${C.border}`,
         }}
@@ -52,14 +52,14 @@ export const Terminal: React.FC<TerminalProps> = ({
         {["#ef4444", "#f59e0b", "#10b981"].map((c) => (
           <div
             key={c}
-            style={{ width: 11, height: 11, borderRadius: "50%", background: c, opacity: 0.8 }}
+            style={{ width: 12, height: 12, borderRadius: "50%", background: c, opacity: 0.8 }}
           />
         ))}
         <span
           style={{
-            marginLeft: 8,
+            marginLeft: 10,
             color: C.muted,
-            fontSize: 12,
+            fontSize: 17,
             letterSpacing: "0.04em",
           }}
         >
@@ -68,7 +68,7 @@ export const Terminal: React.FC<TerminalProps> = ({
       </div>
 
       {/* Content */}
-      <div style={{ padding: "20px 24px", minHeight: 80, lineHeight: 1.7 }}>
+      <div style={{ padding: "24px 28px", minHeight: 110, lineHeight: 1.8 }}>
         {lines.map((line, i) => {
           const opacity = fade(frame, line.start);
           const text = typewriter(line.text, frame, line.start, line.speed ?? 3);
@@ -76,7 +76,7 @@ export const Terminal: React.FC<TerminalProps> = ({
           const showCursor = isLast && text.length < line.text.length;
 
           return (
-            <div key={i} style={{ opacity, display: "flex", gap: 8 }}>
+            <div key={i} style={{ opacity, display: "flex", gap: 12 }}>
               {line.prefix !== undefined ? (
                 <span style={{ color: C.violet, flexShrink: 0 }}>{line.prefix}</span>
               ) : null}

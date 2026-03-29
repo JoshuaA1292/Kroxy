@@ -7,101 +7,85 @@ export const ReleaseScene: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const titleOp = fade(frame, 0);
+  const isUnlocked = frame >= 52;
 
-  // Lock icon dissolves open
   const lockScale = spring({ frame: frame - 20, fps, config: { damping: 14, stiffness: 80 }, durationInFrames: 30 });
-  const lockOp = fade(frame, 10);
-  const unlockOp = fade(frame, 50);
-  const unlockScale = spring({ frame: frame - 50, fps, config: { damping: 10, stiffness: 120 }, durationInFrames: 25 });
+  const flowOp = fade(frame, 66);
+  const usdcX = interpolate(frame, [76, 148], [0, 340], { extrapolateRight: "clamp" });
+  const usdcScale = spring({ frame: frame - 76, fps, config: { damping: 12 }, durationInFrames: 40 });
 
-  // USDC flow animation
-  const flowOp = fade(frame, 65);
-  const usdcX = interpolate(frame, [75, 145], [0, 260], { extrapolateRight: "clamp" });
-  const usdcScale = spring({ frame: frame - 75, fps, config: { damping: 12 }, durationInFrames: 40 });
+  const receiveOp = fade(frame, 146);
+  const receiveScale = spring({ frame: frame - 146, fps, config: { damping: 10, stiffness: 150 }, durationInFrames: 25 });
 
-  // Nexus wallet receive animation
-  const receiveOp = fade(frame, 145);
-  const receiveScale = spring({ frame: frame - 145, fps, config: { damping: 10, stiffness: 150 }, durationInFrames: 25 });
-  const receiveGlow = interpolate(frame, [145, 175], [0, 1], { extrapolateRight: "clamp" });
+  const summaryOp = fade(frame, 182);
+  const summaryY = slide(frame, 182, 14);
 
-  // Summary line
-  const summaryOp = fade(frame, 185);
-  const summaryY = slide(frame, 185);
-
-  // Tx badge
-  const txOp = fade(frame, 205);
+  const txOp = fade(frame, 202);
 
   return (
     <AbsoluteFill style={{ background: C.bg, justifyContent: "center", alignItems: "center" }}>
       <Grid />
-      <GlowDot x={960} y={540} color={C.green} size={700} />
-      <GlowDot x={400} y={300} color={C.amber} size={300} />
+      <GlowDot x={960} y={540} color={C.green} size={760} />
+      <GlowDot x={340} y={280} color={C.amber} size={320} />
       <Vignette />
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 48 }}>
-
-        {/* Label */}
-        <div style={{ opacity: titleOp, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 1, background: C.green }} />
-          <span style={{ fontFamily: C.sans, fontSize: 12, color: C.green, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-            Escrow · Payment Released
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 44 }}>
+        <div style={{ opacity: titleOp, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: C.sans, fontSize: 22, color: C.green, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 }}>
+            Step 6 · Auto Settlement
           </span>
-          <div style={{ width: 32, height: 1, background: C.green }} />
+          <h2 style={{ margin: 0, fontFamily: C.sans, fontSize: 58, color: C.text, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            Escrow unlocks and pays the Mars team instantly
+          </h2>
         </div>
 
-        {/* Flow diagram */}
         <div style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
-
-          {/* Escrow contract */}
           <div
             style={{
-              opacity: lockOp,
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
+              minWidth: 280,
             }}
           >
             <div
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 20,
-                background: frame >= 50
-                  ? `linear-gradient(135deg, ${C.green}33, ${C.green}11)`
-                  : `linear-gradient(135deg, ${C.amber}33, ${C.amber}11)`,
-                border: `2px solid ${frame >= 50 ? C.green + "88" : C.amber + "88"}`,
+                width: 118,
+                height: 118,
+                borderRadius: 24,
+                background: isUnlocked
+                  ? `linear-gradient(135deg, ${C.green}38, ${C.green}16)`
+                  : `linear-gradient(135deg, ${C.amber}38, ${C.amber}16)`,
+                border: `2px solid ${isUnlocked ? C.green + "aa" : C.amber + "aa"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 32,
-                boxShadow: frame >= 50 ? `0 0 40px ${C.green}44` : `0 0 32px ${C.amber}44`,
+                fontSize: 50,
+                boxShadow: isUnlocked ? `0 0 44px ${C.green}4f` : `0 0 36px ${C.amber}4f`,
                 transform: `scale(${lockScale})`,
-                transition: "background 0.3s, border-color 0.3s",
               }}
             >
-              {frame >= 50 ? "🔓" : "🔒"}
+              {isUnlocked ? "🔓" : "🔒"}
             </div>
-            <span style={{ fontFamily: C.mono, fontSize: 11, color: frame >= 50 ? C.green : C.amber }}>
-              Smart Contract
+            <span style={{ fontFamily: C.mono, fontSize: 20, color: isUnlocked ? C.green : C.amber }}>
+              Escrow Contract
             </span>
           </div>
 
-          {/* Arrow + flying USDC token */}
-          <div style={{ position: "relative", width: 300, height: 60, display: "flex", alignItems: "center" }}>
-            {/* Track line */}
+          <div style={{ position: "relative", width: 420, height: 76, display: "flex", alignItems: "center" }}>
             <div
               style={{
                 position: "absolute",
                 left: 0,
                 width: "100%",
-                height: 2,
-                background: `linear-gradient(90deg, ${C.amber}44, ${C.green}44)`,
+                height: 4,
+                borderRadius: 4,
+                background: `linear-gradient(90deg, ${C.amber}66, ${C.green}66)`,
                 opacity: flowOp,
               }}
             />
-            {/* Flying USDC pill */}
-            {frame >= 75 && (
+            {frame >= 76 && (
               <div
                 style={{
                   position: "absolute",
@@ -109,73 +93,71 @@ export const ReleaseScene: React.FC = () => {
                   transform: `translateX(-50%) scale(${usdcScale})`,
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
-                  background: `linear-gradient(90deg, ${C.amber}33, ${C.green}33)`,
-                  border: `1px solid ${C.green}88`,
-                  borderRadius: 20,
-                  padding: "6px 14px",
+                  gap: 8,
+                  background: `linear-gradient(90deg, ${C.amber}40, ${C.green}40)`,
+                  border: `1px solid ${C.green}99`,
+                  borderRadius: 22,
+                  padding: "10px 18px",
                   whiteSpace: "nowrap",
-                  boxShadow: `0 0 20px ${C.green}44`,
+                  boxShadow: `0 0 24px ${C.green}4f`,
                 }}
               >
-                <span style={{ fontFamily: C.sans, fontSize: 13, fontWeight: 700, color: C.green }}>
-                  $2.50 USDC
-                </span>
+                <span style={{ fontFamily: C.sans, fontSize: 24, fontWeight: 700, color: C.green }}>120 USDC</span>
               </div>
             )}
           </div>
 
-          {/* Nexus wallet */}
           <div
             style={{
               opacity: fade(frame, 0),
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 10,
+              gap: 12,
+              minWidth: 280,
             }}
           >
             <div
               style={{
-                width: 80,
-                height: 80,
+                width: 118,
+                height: 118,
                 borderRadius: "50%",
-                background: frame >= 145
-                  ? `${C.cyan}33`
-                  : `${C.cyan}22`,
-                border: `2px solid ${C.cyan}${frame >= 145 ? "cc" : "66"}`,
+                background: frame >= 146 ? `${C.cyan}3d` : `${C.cyan}26`,
+                border: `2px solid ${C.cyan}${frame >= 146 ? "ff" : "77"}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 32,
-                boxShadow: frame >= 145 ? `0 0 40px ${C.cyan}66, 0 0 80px ${C.cyan}22` : `0 0 16px ${C.cyan}22`,
-                transform: frame >= 145 ? `scale(${receiveScale})` : "scale(1)",
+                fontSize: 44,
+                fontFamily: C.sans,
+                color: C.cyan,
+                fontWeight: 800,
+                boxShadow: frame >= 146 ? `0 0 40px ${C.cyan}66, 0 0 90px ${C.cyan}24` : `0 0 16px ${C.cyan}24`,
+                transform: frame >= 146 ? `scale(${receiveScale})` : "scale(1)",
               }}
             >
-              🔬
+              MS
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: C.sans, fontSize: 13, fontWeight: 600, color: C.text }}>Nexus</div>
-              <div style={{ fontFamily: C.mono, fontSize: 11, color: C.muted, marginTop: 2 }}>0x7099...79C8</div>
+              <div style={{ fontFamily: C.sans, fontSize: 28, fontWeight: 700, color: C.text }}>Mars Agent Squad</div>
+              <div style={{ fontFamily: C.mono, fontSize: 18, color: C.muted, marginTop: 4 }}>0x7099...79C8</div>
               <div
                 style={{
                   opacity: receiveOp,
                   fontFamily: C.sans,
-                  fontSize: 14,
+                  fontSize: 30,
                   color: C.green,
-                  fontWeight: 700,
-                  marginTop: 4,
+                  fontWeight: 800,
+                  marginTop: 8,
                   transform: `scale(${receiveScale})`,
-                  textShadow: `0 0 12px ${C.green}`,
+                  textShadow: `0 0 14px ${C.green}`,
                 }}
               >
-                +$2.50 USDC
+                +120 USDC
               </div>
             </div>
           </div>
         </div>
 
-        {/* Summary */}
         <div
           style={{
             opacity: summaryOp,
@@ -183,47 +165,46 @@ export const ReleaseScene: React.FC = () => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
           }}
         >
           <div
             style={{
               fontFamily: C.sans,
-              fontSize: 18,
-              fontWeight: 700,
+              fontSize: 40,
+              fontWeight: 800,
               color: C.green,
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              textShadow: `0 0 24px ${C.green}66`,
+              gap: 12,
+              textShadow: `0 0 26px ${C.green}66`,
             }}
           >
-            <span style={{ fontSize: 24 }}>✓</span>
-            Payment released automatically
+            <span style={{ fontSize: 44 }}>✓</span>
+            Payment released with zero manual approval
           </div>
-          <div style={{ fontFamily: C.sans, fontSize: 13, color: C.muted }}>
-            Conditions verified · escrow settled on Base
+          <div style={{ fontFamily: C.sans, fontSize: 25, color: C.muted }}>
+            all mission conditions verified · settlement confirmed on Base
           </div>
         </div>
 
-        {/* Tx hash */}
         <div
           style={{
             opacity: txOp,
             fontFamily: C.mono,
-            fontSize: 11,
+            fontSize: 19,
             color: C.muted,
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 10,
           }}
         >
           <span style={{ color: C.green }}>tx</span>
-          <span>0x4a3f...e91b</span>
+          <span>0x8af4...11c9</span>
           <span>·</span>
           <span>Base Mainnet</span>
           <span>·</span>
-          <span>confirmed in 2.1s</span>
+          <span>confirmed in 2.3s</span>
         </div>
       </div>
     </AbsoluteFill>

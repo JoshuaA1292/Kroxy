@@ -9,63 +9,60 @@ export const WorkScene: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: C.bg, justifyContent: "center", alignItems: "center" }}>
       <Grid />
-      <GlowDot x={400} y={300} color={C.cyan} size={400} />
-      <GlowDot x={1400} y={700} color={C.violet} size={300} />
+      <GlowDot x={360} y={280} color={C.cyan} size={420} />
+      <GlowDot x={1500} y={760} color={C.mars} size={320} />
       <Vignette />
 
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
-
-        {/* Label */}
-        <div style={{ opacity: fade(frame, 0), display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 1, background: C.cyan }} />
-          <span style={{ fontFamily: C.sans, fontSize: 12, color: C.cyan, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-            Nexus Agent · Claude Research
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 30 }}>
+        <div style={{ opacity: fade(frame, 0), display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: C.sans, fontSize: 22, color: C.cyan, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 }}>
+            Step 4 · Mission Execution
           </span>
-          <div style={{ width: 32, height: 1, background: C.cyan }} />
+          <h2 style={{ margin: 0, fontFamily: C.sans, fontSize: 58, color: C.text, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            Specialist agents complete Mars workstreams in parallel
+          </h2>
         </div>
 
         <Terminal
-          title="nexus — provider agent"
-          width={820}
+          title="mars-agent-squad runtime logs"
+          width={1420}
           lines={[
-            { start: 10, prefix: "▶", text: "[Nexus] Webhook received: JOB_POSTED job_1742658312_a4f", color: C.cyan, speed: 3 },
-            { start: 40, prefix: "  ", text: "[Nexus] Bid submitted: $2.50 USDC, eta 120s", color: C.muted, speed: 4 },
-            { start: 65, prefix: "✓", text: "[Nexus] Bid accepted — escrow locked, work starting", color: C.green, speed: 3 },
-            { start: 90, prefix: "  ", text: '[Nexus] Calling claude-sonnet-4-6 with web_search...', color: C.muted, speed: 3 },
-            { start: 115, prefix: "  ", text: "web_search: 'AI payment startups 2026'", color: C.violet, speed: 3 },
-            { start: 140, prefix: "  ", text: "web_search: 'agent to agent payment protocols Base'", color: C.violet, speed: 3 },
-            { start: 165, prefix: "  ", text: "web_search: 'USDC micropayments autonomous agents'", color: C.violet, speed: 3 },
-            { start: 195, prefix: "✓", text: "[Nexus] Research complete — wordCount: 312, confidence: 0.91", color: C.green, speed: 3 },
-            { start: 218, prefix: "→", text: "POST /api/jobs/job_1742658312_a4f/deliver", color: C.muted, speed: 3 },
-            { start: 235, prefix: "←", text: '200  { status: "COMPLETED" }  · escrow evaluation triggered', color: C.green, speed: 3 },
+            { start: 10, prefix: "▶", text: "[Nexus-Research] Webhook received: job_mars_2026_0412", color: C.cyan, speed: 3 },
+            { start: 34, prefix: "✓", text: "[Atlas-Trajectory] Orbital insertion simulation started", color: C.green, speed: 3.5 },
+            { start: 58, prefix: "✓", text: "[Helios-Habitat] Redundancy checklist + life-support model running", color: C.green, speed: 3.2 },
+            { start: 84, prefix: "  ", text: "[Nexus-Research] web_search: Mars communication blackout mitigation", color: C.violet, speed: 3.1 },
+            { start: 108, prefix: "  ", text: "[Atlas-Trajectory] monte-carlo runs complete: 20,000 trajectories", color: C.violet, speed: 3.3 },
+            { start: 132, prefix: "  ", text: "[Helios-Habitat] system health score: 96 / 100", color: C.violet, speed: 3.6 },
+            { start: 164, prefix: "✓", text: "[Squad] Mission package assembled: 3 reports + references + risk table", color: C.green, speed: 3.2 },
+            { start: 194, prefix: "→", text: "POST /api/jobs/job_mars_2026_0412/deliver", color: C.muted, speed: 3.4 },
+            { start: 220, prefix: "←", text: '200 { status: "COMPLETED" } · verifier sequence triggered', color: C.green, speed: 3.4 },
           ]}
         />
 
-        {/* Model badge */}
         <div
           style={{
-            opacity: fade(frame, 240),
-            transform: `translateY(${slide(frame, 240)})`,
+            opacity: fade(frame, 220),
+            transform: `translateY(${slide(frame, 220, 14)})`,
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 18,
           }}
         >
           <div
             style={{
               fontFamily: C.mono,
-              fontSize: 12,
+              fontSize: 18,
               color: C.cyan,
-              background: `${C.cyan}15`,
-              border: `1px solid ${C.cyan}44`,
-              borderRadius: 8,
-              padding: "5px 14px",
+              background: `${C.cyan}1b`,
+              border: `1px solid ${C.cyan}55`,
+              borderRadius: 10,
+              padding: "8px 16px",
             }}
           >
-            claude-sonnet-4-6
+            3 specialized agents
           </div>
-          <div style={{ fontFamily: C.sans, fontSize: 12, color: C.muted }}>
-            + web_search_20250305 · 3 searches · 312 words · confidence 0.91
+          <div style={{ fontFamily: C.sans, fontSize: 24, color: C.muted }}>
+            all deliverables uploaded with citations, metrics, and audit metadata
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { balanceParams, executeBalance } from './src/tools/balance.js';
 import { browseParams, executeBrowse } from './src/tools/browse.js';
 import { disputeParams, executeDispute } from './src/tools/dispute.js';
 import { historyParams, executeHistory } from './src/tools/history.js';
+import { autoagentParams, executeAutoagent } from './src/tools/autoagent.js';
 
 type ReputationToolParams = Parameters<typeof executeReputation>[0];
 type OfferToolParams = Parameters<typeof executeOffer>[0];
@@ -18,6 +19,7 @@ type BalanceToolParams = Parameters<typeof executeBalance>[0];
 type BrowseToolParams = Parameters<typeof executeBrowse>[0];
 type DisputeToolParams = Parameters<typeof executeDispute>[0];
 type HistoryToolParams = Parameters<typeof executeHistory>[0];
+type AutoagentToolParams = Parameters<typeof executeAutoagent>[0];
 
 export default {
   id: 'kroxy',
@@ -154,6 +156,24 @@ export default {
         parameters: disputeParams,
         async execute(_id: string, params: DisputeToolParams) {
           return executeDispute(params);
+        },
+      },
+      { optional: true },
+    );
+
+    // Autonomous multi-step goal orchestrator.
+    api.registerTool(
+      {
+        name: 'kroxy_autoagent',
+        label: 'Kroxy AutoAgent',
+        description:
+          'Autonomous orchestrator: takes a high-level goal, decomposes it into specialist subtasks ' +
+          '(research, writing, coding, planning), hires the best agent for each via Kroxy escrow, ' +
+          'and returns a unified deliverable. Set LAVA_SECRET_KEY + ANTHROPIC_API_KEY for LLM decomposition, or it ' +
+          'falls back to keyword-based routing. Requires KROXY_AGENT_WALLET.',
+        parameters: autoagentParams,
+        async execute(_id: string, params: AutoagentToolParams) {
+          return executeAutoagent(params);
         },
       },
       { optional: true },

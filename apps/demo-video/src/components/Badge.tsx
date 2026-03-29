@@ -20,18 +20,18 @@ export const Badge: React.FC<BadgeProps> = ({
     style={{
       display: "inline-flex",
       flexDirection: "column",
-      gap: 4,
+      gap: 8,
       background: C.surfaceHigh,
       border: `1px solid ${color}44`,
-      borderRadius: 10,
-      padding: "10px 18px",
+      borderRadius: 14,
+      padding: "14px 22px",
       boxShadow: glow ? `0 0 24px ${glow}` : undefined,
     }}
   >
     <span
       style={{
         fontFamily: C.sans,
-        fontSize: 10,
+        fontSize: 14,
         color: color,
         textTransform: "uppercase",
         letterSpacing: "0.12em",
@@ -43,7 +43,7 @@ export const Badge: React.FC<BadgeProps> = ({
     <span
       style={{
         fontFamily: mono ? C.mono : C.sans,
-        fontSize: mono ? 12 : 15,
+        fontSize: mono ? 18 : 24,
         color: C.text,
         fontWeight: 600,
       }}

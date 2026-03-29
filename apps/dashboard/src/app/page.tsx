@@ -491,7 +491,7 @@ function EventTicker({ events }: { events: AuditEventDTO[] }) {
           return (
             <span key={i} className="text-[9px] font-mono flex items-center gap-2">
               <span className={`${color} font-bold`}>{e.eventType.replace(/_/g, ' ')}</span>
-              <span className="text-zinc-700">{short(e.actorAddress)}</span>
+              <span className="text-zinc-700">{e.actorAddress ? short(e.actorAddress) : ''}</span>
               <span className="text-zinc-800">·</span>
             </span>
           );
@@ -607,8 +607,8 @@ function EventLog({ events }: { events: AuditEventDTO[] }) {
                   <span className={`text-[9px] font-bold ${color}`}>{e.eventType.replace(/_/g, ' ')}</span>
                 </div>
                 <div className="flex items-center justify-between ml-2.5">
-                  <span className="text-[8px] font-mono text-zinc-700">{short(e.actorAddress)}</span>
-                  <span className="text-[8px] font-mono text-zinc-800">{e.thisHash.slice(0, 8)}…</span>
+                  <span className="text-[8px] font-mono text-zinc-700">{e.actorAddress ? short(e.actorAddress) : ''}</span>
+                  <span className="text-[8px] font-mono text-zinc-800">{e.thisHash ? e.thisHash.slice(0, 8) : e.hash.slice(0, 8)}…</span>
                 </div>
               </div>
             );

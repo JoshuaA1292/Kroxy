@@ -3,17 +3,18 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, interpolate } fr
 import { C, Grid, Vignette, GlowDot, fade, slide, typewriter } from "../styles";
 import { Badge } from "../components/Badge";
 
-const TX = "0x4a3f...e91b";
-const ESCROW_ID = "0x7c3a...d4f2";
+const TX = "0x8af4...11c9";
+const ESCROW_ID = "0x33cd...9b7e";
 
 const Wallet: React.FC<{
   label: string;
   address: string;
   amount?: string;
   color: string;
+  icon: string;
   opacity: number;
   translateY: number;
-}> = ({ label, address, amount, color, opacity, translateY }) => (
+}> = ({ label, address, amount, color, icon, opacity, translateY }) => (
   <div
     style={{
       opacity,
@@ -21,29 +22,33 @@ const Wallet: React.FC<{
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: 10,
+      gap: 14,
+      minWidth: 300,
     }}
   >
     <div
       style={{
-        width: 72,
-        height: 72,
+        width: 110,
+        height: 110,
         borderRadius: "50%",
-        background: `${color}22`,
-        border: `2px solid ${color}66`,
+        background: `${color}24`,
+        border: `2px solid ${color}77`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        fontSize: 28,
+        fontSize: 44,
+        fontFamily: C.sans,
+        color,
+        fontWeight: 800,
       }}
     >
-      {label === "OpenClaw" ? "🤖" : "🔬"}
+      {icon}
     </div>
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontFamily: C.sans, fontSize: 14, fontWeight: 600, color: C.text }}>{label}</div>
-      <div style={{ fontFamily: C.mono, fontSize: 11, color: C.muted, marginTop: 2 }}>{address}</div>
+      <div style={{ fontFamily: C.sans, fontSize: 30, fontWeight: 700, color: C.text }}>{label}</div>
+      <div style={{ fontFamily: C.mono, fontSize: 18, color: C.muted, marginTop: 4 }}>{address}</div>
       {amount && (
-        <div style={{ fontFamily: C.sans, fontSize: 13, color: color, fontWeight: 600, marginTop: 4 }}>
+        <div style={{ fontFamily: C.sans, fontSize: 24, color, fontWeight: 700, marginTop: 8 }}>
           {amount}
         </div>
       )}
@@ -57,62 +62,56 @@ export const EscrowScene: React.FC = () => {
 
   const titleOp = fade(frame, 0);
   const walletAOp = fade(frame, 15);
-  const walletAY = slide(frame, 15);
+  const walletAY = slide(frame, 15, 24);
 
-  // Arrow + lock animation
-  const lockScale = spring({ frame: frame - 50, fps, config: { damping: 12, stiffness: 100 }, durationInFrames: 40 });
-  const lockOpacity = fade(frame, 50);
-  const arrowWidth = interpolate(frame, [50, 90], [0, 180], { extrapolateRight: "clamp" });
+  const lockScale = spring({ frame: frame - 52, fps, config: { damping: 12, stiffness: 100 }, durationInFrames: 40 });
+  const lockOpacity = fade(frame, 52);
+  const railWidth = interpolate(frame, [52, 95], [0, 520], { extrapolateRight: "clamp" });
 
-  const walletBOp = fade(frame, 90);
-  const walletBY = slide(frame, 90);
+  const walletBOp = fade(frame, 96);
+  const walletBY = slide(frame, 96, 24);
 
-  // USDC counter
-  const usdcValue = interpolate(frame, [100, 150], [0, 2.5], { extrapolateRight: "clamp" });
-  const usdcOp = fade(frame, 100);
+  const usdcValue = interpolate(frame, [108, 158], [0, 120], { extrapolateRight: "clamp" });
+  const usdcOp = fade(frame, 108);
 
-  // Tx hashes
-  const txOp = fade(frame, 155);
-  const txY = slide(frame, 155);
-  const escrowText = typewriter(ESCROW_ID, frame, 160, 4);
-  const txText = typewriter(TX, frame, 175, 4);
+  const txOp = fade(frame, 166);
+  const txY = slide(frame, 166, 18);
+  const escrowText = typewriter(ESCROW_ID, frame, 172, 4);
+  const txText = typewriter(TX, frame, 188, 4);
 
-  // Base chain label
-  const chainOp = fade(frame, 135);
+  const chainOp = fade(frame, 138);
 
   return (
     <AbsoluteFill style={{ background: C.bg, justifyContent: "center", alignItems: "center" }}>
       <Grid />
-      <GlowDot x={960} y={400} color={C.amber} size={500} />
-      <GlowDot x={960} y={540} color={C.violet} size={300} />
+      <GlowDot x={960} y={380} color={C.mars} size={560} />
+      <GlowDot x={960} y={560} color={C.violet} size={360} />
       <Vignette />
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 48 }}>
-
-        {/* Label */}
-        <div style={{ opacity: titleOp, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 1, background: C.amber }} />
-          <span style={{ fontFamily: C.sans, fontSize: 12, color: C.amber, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-            Locking USDC Escrow on Base
+        <div style={{ opacity: titleOp, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: C.sans, fontSize: 22, color: C.amber, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 }}>
+            Step 3 · Secure Mission Budget
           </span>
-          <div style={{ width: 32, height: 1, background: C.amber }} />
+          <h2 style={{ margin: 0, fontFamily: C.sans, fontSize: 58, color: C.text, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            Lock 120 USDC in conditional escrow on Base
+          </h2>
         </div>
 
-        {/* Wallet flow diagram */}
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 38 }}>
           <Wallet
-            label="OpenClaw"
+            label="Mission Control"
             address="0x3163...b736"
+            amount="Budget: 120 USDC"
             color={C.violet}
+            icon="MC"
             opacity={walletAOp}
             translateY={walletAY}
           />
 
-          {/* Arrow + lock */}
-          <div style={{ display: "flex", alignItems: "center", position: "relative" }}>
-            <div style={{ width: arrowWidth, height: 2, background: `linear-gradient(90deg, ${C.violet}, ${C.amber})` }} />
+          <div style={{ width: 620, height: 180, position: "relative", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <div style={{ width: railWidth, height: 4, borderRadius: 4, background: `linear-gradient(90deg, ${C.violet}, ${C.amber}, ${C.cyan})` }} />
 
-            {/* Lock icon (escrow contract) */}
             <div
               style={{
                 opacity: lockOpacity,
@@ -120,86 +119,81 @@ export const EscrowScene: React.FC = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 6,
+                gap: 10,
                 position: "absolute",
-                left: "50%",
-                transform: `translateX(-50%) scale(${lockScale})`,
               }}
             >
               <div
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 14,
-                  background: `linear-gradient(135deg, ${C.amber}33, ${C.amber}11)`,
-                  border: `2px solid ${C.amber}88`,
+                  width: 96,
+                  height: 96,
+                  borderRadius: 18,
+                  background: `linear-gradient(135deg, ${C.amber}44, ${C.amber}18)`,
+                  border: `2px solid ${C.amber}99`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 24,
-                  boxShadow: `0 0 32px ${C.amber}44`,
+                  fontSize: 44,
+                  boxShadow: `0 0 34px ${C.amber}55`,
                 }}
               >
                 🔒
               </div>
-              <span style={{ fontFamily: C.mono, fontSize: 11, color: C.amber, whiteSpace: "nowrap" }}>
-                Smart Contract
+              <span style={{ fontFamily: C.mono, fontSize: 18, color: C.amber, whiteSpace: "nowrap" }}>
+                Escrow Smart Contract
               </span>
             </div>
-
-            <div style={{ width: arrowWidth, height: 2, background: `linear-gradient(90deg, ${C.amber}, ${C.cyan})`, marginLeft: arrowWidth }} />
           </div>
 
           <Wallet
-            label="Nexus"
+            label="Mars Agent Squad"
             address="0x7099...79C8"
             color={C.cyan}
+            icon="MS"
             opacity={walletBOp}
             translateY={walletBY}
           />
         </div>
 
-        {/* USDC amount */}
         <div
           style={{
             opacity: usdcOp,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 6,
+            gap: 8,
           }}
         >
           <span
             style={{
               fontFamily: C.sans,
-              fontSize: 52,
-              fontWeight: 800,
+              fontSize: 78,
+              fontWeight: 900,
               color: C.amber,
-              textShadow: `0 0 32px ${C.amber}66`,
+              textShadow: `0 0 34px ${C.amber}66`,
+              letterSpacing: "-0.02em",
             }}
           >
             ${usdcValue.toFixed(2)} USDC
           </span>
           <div style={{ opacity: chainOp }}>
-            <span style={{ fontFamily: C.sans, fontSize: 13, color: C.muted }}>
-              locked on Base · awaiting delivery conditions
+            <span style={{ fontFamily: C.sans, fontSize: 24, color: C.muted }}>
+              funds locked on Base until all mission checks pass
             </span>
           </div>
         </div>
 
-        {/* Tx hashes */}
         <div
           style={{
             opacity: txOp,
             transform: `translateY(${txY}px)`,
             display: "flex",
-            gap: 16,
+            gap: 20,
           }}
         >
           <Badge label="Escrow ID" value={escrowText} color={C.amber} mono />
           <Badge label="Tx Hash" value={txText} color={C.violet} mono />
         </div>
-
       </div>
     </AbsoluteFill>
   );

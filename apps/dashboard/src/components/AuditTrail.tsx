@@ -50,7 +50,7 @@ function EventRow({ event, isLast }: { event: AuditEventDTO; isLast: boolean }) 
           <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-gray-400">
             <span className="text-gray-300">{event.actorRole}</span>
             <span className="text-gray-200">&middot;</span>
-            <span>{event.thisHash.slice(0, 12)}&hellip;</span>
+            <span>{event.thisHash?.slice(0, 12) ?? event.hash.slice(0, 12)}&hellip;</span>
           </div>
         </button>
 

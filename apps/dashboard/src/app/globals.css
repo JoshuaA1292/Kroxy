@@ -166,3 +166,102 @@ body {
 .cond-3 { animation-delay: 240ms; }
 .cond-4 { animation-delay: 320ms; }
 .cond-5 { animation-delay: 400ms; }
+
+/* ─────────────────────────────────────────────
+   HIRE DEMO — black/white futuristic terminal
+   ───────────────────────────────────────────── */
+
+/* Cursor blink */
+@keyframes cursor-blink {
+  0%, 49.9% { opacity: 1; }
+  50%, 100%  { opacity: 0; }
+}
+.cursor-blink { animation: cursor-blink 1.1s step-end infinite; }
+
+/* White glow pulse (active agent card) */
+@keyframes glow-white-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(255,255,255,0.06), 0 0 0 1px rgba(255,255,255,0.15); }
+  50%       { box-shadow: 0 0 32px rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.40); }
+}
+.glow-white { animation: glow-white-pulse 2s ease-in-out infinite; }
+
+/* White border flash on hire */
+@keyframes border-flash {
+  0%   { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+  100% { border-color: rgba(255,255,255,0.3); box-shadow: none; }
+}
+.border-flash { animation: border-flash 0.4s ease-out both; }
+
+/* Glitch on complete */
+@keyframes glitch-once {
+  0%, 100% { transform: translate(0); clip-path: none; }
+  20%  { transform: translate(-3px, 0); }
+  40%  { transform: translate(3px, 0); }
+  60%  { transform: translate(-1px, 0); }
+  80%  { transform: translate(1px, 0); }
+}
+.glitch-once { animation: glitch-once 0.25s ease both; }
+
+/* Slide up for historic overlay */
+@keyframes slide-up-overlay {
+  from { opacity: 0; transform: translateY(60px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.slide-up-overlay { animation: slide-up-overlay 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* Fade in for lines */
+@keyframes line-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.line-in { animation: line-in 0.2s ease both; }
+
+/* Progress fill */
+@keyframes bar-fill {
+  from { width: 0%; }
+}
+
+/* White grid bg for hire demo */
+.bg-grid-white {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* CRT scanlines for hire demo */
+.scanlines-hire::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Hire demo font override */
+.hire-demo { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+
+/* Invert badge (white bg, black text) */
+.badge-active {
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+}
+
+/* Number counter spin */
+@keyframes number-roll {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.number-roll { animation: number-roll 0.3s ease both; }
+
+/* ── Hide scrollbar ── */
+.scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }

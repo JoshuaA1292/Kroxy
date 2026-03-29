@@ -15,11 +15,7 @@
       "NEXUS_URL": { "type": "string" },
       "KROXY_DEMO_MODE": { "type": "string" }
     },
-    "required": [
-      "KROXY_API_URL",
-      "KROXY_API_KEY",
-      "KROXY_AGENT_WALLET"
-    ]
+    "required": []
   },
   "uiHints": {
     "KROXY_API_KEY": {

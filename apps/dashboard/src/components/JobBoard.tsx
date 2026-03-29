@@ -36,8 +36,8 @@ export function JobBoard() {
     <div className="space-y-3">
       {jobs.map((job) => {
         const statusClass = STATUS_COLOR[job.status] ?? 'text-zinc-400 bg-zinc-900 border-zinc-700';
-        const deadlineDate = new Date(job.deadline);
-        const isExpired = deadlineDate < new Date();
+        const deadlineDate = job.deadline ? new Date(job.deadline) : null;
+        const isExpired = deadlineDate ? deadlineDate < new Date() : false;
 
         return (
           <div
@@ -52,7 +52,7 @@ export function JobBoard() {
             </div>
 
             <div className="flex flex-wrap gap-1">
-              {job.requiredCaps.map((cap) => (
+              {(job.requiredCaps ?? []).map((cap) => (
                 <span
                   key={cap}
                   className="text-xs px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300"
@@ -63,9 +63,9 @@ export function JobBoard() {
             </div>
 
             <div className="flex items-center justify-between text-xs text-zinc-500">
-              <span>Budget: <strong className="text-white">${parseFloat(job.budgetMaxUsdc).toFixed(2)} USDC</strong></span>
+              <span>Budget: <strong className="text-white">${parseFloat(job.budgetMaxUsdc ?? '0').toFixed(2)} USDC</strong></span>
               <span className={isExpired ? 'text-red-500' : ''}>
-                {isExpired ? 'Expired' : `Deadline: ${deadlineDate.toLocaleDateString()}`}
+                {isExpired ? 'Expired' : deadlineDate ? `Deadline: ${deadlineDate.toLocaleDateString()}` : ''}
               </span>
               <span>{job.bids?.length ?? 0} bid{(job.bids?.length ?? 0) !== 1 ? 's' : ''}</span>
             </div>

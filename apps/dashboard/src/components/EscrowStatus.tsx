@@ -57,7 +57,7 @@ export function EscrowStatus({ escrow }: { escrow: EscrowRecordDTO | null }) {
       <div className="space-y-2.5 pt-3 border-t border-gray-100">
         <Row label="Payer" value={`${escrow.payerAddress.slice(0,6)}\u2026${escrow.payerAddress.slice(-4)}`} mono />
         <Row label="Payee" value={`${escrow.payeeAddress.slice(0,6)}\u2026${escrow.payeeAddress.slice(-4)}`} mono />
-        {escrow.state === 'ACTIVE' && (
+        {escrow.state === 'ACTIVE' && escrow.expiresAt && (
           <Row label="Expires" value={<ExpiryCountdown expiresAt={escrow.expiresAt} />} />
         )}
         {escrow.txHashCreated && (

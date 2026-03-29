@@ -3,109 +3,100 @@ import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { C, Grid, Vignette, GlowDot, fade, slide, typewriter } from "../styles";
 
 const FINDINGS = [
-  "Base's USDC settlement layer enables sub-cent agent micropayments",
-  "A2A escrow removes trust requirements between autonomous agents",
-  "Conditional release tied to verified output quality, not manual review",
+  "Trajectory plan reached 94/100 reliability across 20,000 Monte Carlo runs.",
+  "Habitat architecture includes triple-redundant oxygen and thermal loops.",
+  "Communication strategy covers blackout windows with relay orbit contingencies.",
 ];
 
 const SUMMARY_TEXT =
-  "AI agent-to-agent payment protocols are maturing rapidly. Kroxy's escrow model on Base enables autonomous agents to transact with quality guarantees — no human intermediary needed.";
+  "Mars mission package delivered. Your hired specialist agents produced a validated launch plan with risk controls, citations, and operational checklists. All outputs meet escrow quality thresholds.";
 
 export const ResultScene: React.FC = () => {
   const frame = useCurrentFrame();
 
   const titleOp = fade(frame, 0);
 
-  // Agent bubble with result
   const bubbleOp = fade(frame, 20);
-  const bubbleY = slide(frame, 20);
+  const bubbleY = slide(frame, 20, 20);
 
-  // Deliverable card
   const cardOp = fade(frame, 60);
   const cardY = slide(frame, 60, 20);
 
-  // Key findings appear one by one
-  const finding1Op = fade(frame, 90);
-  const finding2Op = fade(frame, 115);
-  const finding3Op = fade(frame, 140);
+  const finding1Op = fade(frame, 92);
+  const finding2Op = fade(frame, 118);
+  const finding3Op = fade(frame, 144);
 
-  // Summary typewriter
-  const summary = typewriter(SUMMARY_TEXT, frame, 100, 3);
+  const summary = typewriter(SUMMARY_TEXT, frame, 100, 3.1);
 
-  // Stats row
-  const statsOp = fade(frame, 165);
-  const statsY = slide(frame, 165);
+  const statsOp = fade(frame, 168);
+  const statsY = slide(frame, 168, 14);
 
   return (
     <AbsoluteFill style={{ background: C.bg, justifyContent: "center", alignItems: "center" }}>
       <Grid />
-      <GlowDot x={300} y={400} color={C.violet} size={400} />
-      <GlowDot x={1500} y={600} color={C.cyan} size={350} />
+      <GlowDot x={280} y={420} color={C.violet} size={420} />
+      <GlowDot x={1540} y={620} color={C.cyan} size={390} />
       <Vignette />
 
-      <div style={{ width: 900, display: "flex", flexDirection: "column", gap: 24 }}>
-
-        {/* Label */}
-        <div style={{ opacity: titleOp, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 1, background: C.violet }} />
-          <span style={{ fontFamily: C.sans, fontSize: 12, color: C.violet, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-            OpenClaw · Research Delivered
+      <div style={{ width: 1520, display: "flex", flexDirection: "column", gap: 26 }}>
+        <div style={{ opacity: titleOp, display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ fontFamily: C.sans, fontSize: 22, color: C.violet, letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 700 }}>
+            Step 7 · Mission Deliverable
           </span>
+          <h2 style={{ margin: 0, fontFamily: C.sans, fontSize: 58, color: C.text, fontWeight: 800, letterSpacing: "-0.02em" }}>
+            Mission to Mars briefing arrives in your chat
+          </h2>
         </div>
 
-        {/* Agent reply bubble */}
         <div
           style={{
             opacity: bubbleOp,
             transform: `translateY(${bubbleY}px)`,
             alignSelf: "flex-start",
-            maxWidth: 620,
+            maxWidth: 1360,
           }}
         >
           <div
             style={{
               background: C.surface,
               border: `1px solid ${C.border}`,
-              borderRadius: "18px 18px 18px 4px",
-              padding: "14px 20px",
+              borderRadius: "24px 24px 24px 8px",
+              padding: "22px 28px",
             }}
           >
-            <p style={{ fontFamily: C.sans, fontSize: 15, color: C.text, margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontFamily: C.sans, fontSize: 31, color: C.text, margin: 0, lineHeight: 1.35, fontWeight: 500 }}>
               {summary}
             </p>
           </div>
-          <div style={{ fontFamily: C.sans, fontSize: 11, color: C.muted, marginTop: 6 }}>
-            Agent · OpenClaw
-          </div>
+          <div style={{ fontFamily: C.sans, fontSize: 18, color: C.muted, marginTop: 10 }}>OpenClaw Command Agent</div>
         </div>
 
-        {/* Deliverable card */}
         <div
           style={{
             opacity: cardOp,
             transform: `translateY(${cardY}px)`,
             background: C.surfaceHigh,
-            border: `1px solid ${C.violet}44`,
-            borderRadius: 14,
-            padding: "20px 24px",
-            boxShadow: `0 0 40px ${C.violet}18`,
+            border: `1px solid ${C.violet}55`,
+            borderRadius: 16,
+            padding: "24px 28px",
+            boxShadow: `0 0 44px ${C.violet}20`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <span style={{ fontFamily: C.sans, fontSize: 12, fontWeight: 600, color: C.violet, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Key Findings
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+            <span style={{ fontFamily: C.sans, fontSize: 21, fontWeight: 700, color: C.violet, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              Mars Mission Findings
             </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <span style={{ fontFamily: C.mono, fontSize: 11, color: C.cyan, background: `${C.cyan}18`, border: `1px solid ${C.cyan}44`, borderRadius: 6, padding: "3px 10px" }}>
-                312 words
+            <div style={{ display: "flex", gap: 10 }}>
+              <span style={{ fontFamily: C.mono, fontSize: 18, color: C.cyan, background: `${C.cyan}1c`, border: `1px solid ${C.cyan}55`, borderRadius: 8, padding: "6px 12px" }}>
+                3 specialist reports
               </span>
-              <span style={{ fontFamily: C.mono, fontSize: 11, color: C.green, background: `${C.green}18`, border: `1px solid ${C.green}44`, borderRadius: 6, padding: "3px 10px" }}>
-                0.91 confidence
+              <span style={{ fontFamily: C.mono, fontSize: 18, color: C.green, background: `${C.green}1c`, border: `1px solid ${C.green}55`, borderRadius: 8, padding: "6px 12px" }}>
+                quality score 0.94
               </span>
             </div>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {FINDINGS.map((finding, i) => {
               const ops = [finding1Op, finding2Op, finding3Op];
               return (
@@ -115,26 +106,26 @@ export const ResultScene: React.FC = () => {
                     opacity: ops[i],
                     display: "flex",
                     alignItems: "flex-start",
-                    gap: 10,
+                    gap: 12,
                   }}
                 >
                   <div
                     style={{
-                      width: 20,
-                      height: 20,
+                      width: 26,
+                      height: 26,
                       borderRadius: "50%",
-                      background: `${C.green}22`,
-                      border: `1px solid ${C.green}66`,
+                      background: `${C.green}24`,
+                      border: `1px solid ${C.green}77`,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      marginTop: 1,
+                      marginTop: 2,
                     }}
                   >
-                    <span style={{ fontSize: 10, color: C.green }}>✓</span>
+                    <span style={{ fontSize: 14, color: C.green }}>✓</span>
                   </div>
-                  <span style={{ fontFamily: C.sans, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+                  <span style={{ fontFamily: C.sans, fontSize: 27, color: C.text, lineHeight: 1.35 }}>
                     {finding}
                   </span>
                 </div>
@@ -143,20 +134,19 @@ export const ResultScene: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats row */}
         <div
           style={{
             opacity: statsOp,
             transform: `translateY(${statsY}px)`,
             display: "flex",
-            gap: 16,
+            gap: 14,
           }}
         >
           {[
-            { label: "Agent hired", value: "Nexus", color: C.cyan },
-            { label: "Amount paid", value: "$2.50 USDC", color: C.amber },
-            { label: "Verified by", value: "Kroxy Escrow", color: C.violet },
-            { label: "Time elapsed", value: "~120s", color: C.muted },
+            { label: "Agents hired", value: "3 specialists", color: C.cyan },
+            { label: "Escrow settled", value: "120 USDC", color: C.amber },
+            { label: "Checks passed", value: "9 / 9", color: C.green },
+            { label: "Total runtime", value: "6m 12s", color: C.muted },
           ].map(({ label, value, color }) => (
             <div
               key={label}
@@ -164,15 +154,15 @@ export const ResultScene: React.FC = () => {
                 flex: 1,
                 background: C.surface,
                 border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                padding: "12px 14px",
+                borderRadius: 12,
+                padding: "14px 16px",
                 display: "flex",
                 flexDirection: "column",
-                gap: 4,
+                gap: 6,
               }}
             >
-              <div style={{ fontFamily: C.sans, fontSize: 11, color: C.muted }}>{label}</div>
-              <div style={{ fontFamily: C.mono, fontSize: 14, fontWeight: 700, color }}>{value}</div>
+              <div style={{ fontFamily: C.sans, fontSize: 18, color: C.muted }}>{label}</div>
+              <div style={{ fontFamily: C.mono, fontSize: 27, fontWeight: 700, color }}>{value}</div>
             </div>
           ))}
         </div>

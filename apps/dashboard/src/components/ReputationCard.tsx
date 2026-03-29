@@ -61,7 +61,7 @@ export function ReputationCard({ address }: { address: string | null }) {
           <div className="flex justify-between">
             <span className="text-xs text-gray-400">Total earned</span>
             <span className="text-xs font-mono font-semibold text-gray-700">
-              ${(Number(BigInt(rep.totalEarned)) / 1_000_000).toFixed(2)} USDC
+              ${rep.totalEarned ? (Number(BigInt(rep.totalEarned)) / 1_000_000).toFixed(2) : '0.00'} USDC
             </span>
           </div>
         </div>

@@ -46,7 +46,7 @@ export function HashChainVisualizer({ events }: { events: AuditEventDTO[] }) {
       const input = [prev, e.id, e.escrowId, e.eventType, e.actorAddress, JSON.stringify(e.rawData), e.createdAt].join('|');
       const computed = await sha256(input);
       checks.push(computed === e.thisHash && e.previousHash === prev);
-      prev = e.thisHash;
+      prev = e.thisHash ?? e.hash;
     }
     setResults(checks);
     const allOk = checks.every(Boolean);
@@ -117,7 +117,7 @@ export function HashChainVisualizer({ events }: { events: AuditEventDTO[] }) {
                   {results === null ? `#${event.sequence}` : ok ? '\u2713 valid' : '\u2717 invalid'}
                 </span>
               </div>
-              <div className="text-gray-400">{event.thisHash.slice(0, 14)}&hellip;{event.thisHash.slice(-6)}</div>
+              <div className="text-gray-400">{(event.thisHash ?? event.hash).slice(0, 14)}&hellip;{(event.thisHash ?? event.hash).slice(-6)}</div>
             </div>
             {i < events.length - 1 && <div className="w-px h-2 bg-gray-200 ml-4" />}
           </div>
